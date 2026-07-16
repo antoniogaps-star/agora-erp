@@ -47,6 +47,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const Text(
+              'Ágora ERP',
+              style: TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2F6DF6),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Dictas. Vendes. Controlas.',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF15803D),
+              ),
+            ),
+            const SizedBox(height: 32),
             TextField(
               controller: _slug,
               decoration: const InputDecoration(labelText: 'Empresa (slug)'),

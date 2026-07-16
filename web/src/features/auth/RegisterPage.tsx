@@ -36,6 +36,7 @@ export function RegisterPage() {
     <div className="center">
       <form className="card" onSubmit={onSubmit}>
         <h1>Ágora ERP · Crear empresa</h1>
+        <p className="slogan">Dictas. Vendes. Controlas.</p>
 
         <label htmlFor="company_name">Nombre de la empresa</label>
         <input

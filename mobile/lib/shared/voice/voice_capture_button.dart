@@ -83,7 +83,8 @@ class _VoiceCaptureButtonState extends State<VoiceCaptureButton> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: FilledButton.icon(
         style: FilledButton.styleFrom(
-          backgroundColor: _active ? Colors.red.shade600 : null,
+          // Verde de marca cuando está escuchando (paleta Ágora).
+          backgroundColor: _active ? const Color(0xFF22C55E) : null,
           minimumSize: const Size.fromHeight(48),
         ),
         onPressed: _toggle,

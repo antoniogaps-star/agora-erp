@@ -36,6 +36,14 @@ dev_dependencies:
   freezed: ^2.5.7
   json_serializable: ^6.9.0
   mockito: ^5.4.4
+  flutter_launcher_icons: ^0.14.1
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#2F6DF6"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
 
 flutter:
   uses-material-design: true
