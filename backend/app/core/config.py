@@ -6,6 +6,7 @@ módulos: importar `settings` de aquí. Ver docs/06_Backend.md y docs/09_Segurid
 
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import parse_qsl, urlencode
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -55,17 +56,32 @@ class Settings(BaseSettings):
     @field_validator("database_url", "migration_database_url", mode="before")
     @classmethod
     def _normalize_pg_scheme(cls, value: str | None) -> str | None:
-        """Acepta URLs de Postgres de cualquier proveedor (Railway, Render, Heroku…).
+        """Acepta URLs de Postgres de cualquier proveedor (Railway, Neon, Heroku…).
 
-        Los proveedores entregan `postgres://` o `postgresql://`; SQLAlchemy async
-        necesita `postgresql+asyncpg://`. Se normaliza aquí para poder pegar la
-        variable del proveedor tal cual.
+        - Los proveedores entregan `postgres://` o `postgresql://`; SQLAlchemy async
+          necesita `postgresql+asyncpg://`.
+        - asyncpg no entiende los parámetros libpq `sslmode` / `channel_binding`
+          (típicos de Neon): se traducen a `ssl=` y se descarta channel_binding.
+        Así la variable del proveedor se pega tal cual, sin ediciones manuales.
         """
         if value is None:
             return value
         for prefix in ("postgres://", "postgresql://"):
             if value.startswith(prefix) and not value.startswith("postgresql+"):
-                return "postgresql+asyncpg://" + value[len(prefix):]
+                value = "postgresql+asyncpg://" + value[len(prefix):]
+                break
+        if value.startswith("postgresql+asyncpg://") and "?" in value:
+            base, _, query = value.partition("?")
+            params = []
+            for pair in parse_qsl(query):
+                key, val = pair
+                if key == "sslmode":
+                    params.append(("ssl", val))
+                elif key == "channel_binding":
+                    continue
+                else:
+                    params.append(pair)
+            value = base + (f"?{urlencode(params)}" if params else "")
         return value
 
     @model_validator(mode="after")

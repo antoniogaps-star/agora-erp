@@ -1,0 +1,20 @@
+# Blueprint de Render: despliega el backend con la capa gratuita.
+# En Render: New → Blueprint → seleccionar este repo. Pedirá pegar DATABASE_URL (Neon).
+services:
+  - type: web
+    name: agora-erp-backend
+    runtime: docker
+    dockerfilePath: ./infra/Dockerfile.backend
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://agora-erp.vercel.app
+      - key: DATABASE_URL
+        sync: false

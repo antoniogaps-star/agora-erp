@@ -47,3 +47,13 @@ def test_url_de_proveedor_se_normaliza_a_asyncpg(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@host:5432/db")
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
     assert settings.database_url == "postgresql+asyncpg://u:p@host:5432/db"
+
+
+def test_url_de_neon_traduce_ssl(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Neon usa sslmode/channel_binding (libpq); asyncpg necesita ssl= y sin channel_binding."""
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql://u:p@ep-x.neon.tech/db?sslmode=require&channel_binding=require",
+    )
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.database_url == "postgresql+asyncpg://u:p@ep-x.neon.tech/db?ssl=require"
