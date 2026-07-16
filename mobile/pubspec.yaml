@@ -24,6 +24,8 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   uuid: ^4.5.1
   path_provider: ^2.1.5
+  # Dictado por voz (captura de inventario/clientes)
+  speech_to_text: ^7.4.0
 
 dev_dependencies:
   flutter_test:

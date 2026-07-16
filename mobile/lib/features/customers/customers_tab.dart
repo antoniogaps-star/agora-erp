@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../shared/voice/voice_capture_button.dart';
+import '../../shared/voice/voice_parser.dart';
 
 /// Pestaña de clientes: alta y listado sobre la base local (offline-first).
 class CustomersTab extends ConsumerStatefulWidget {
@@ -46,6 +48,29 @@ class _CustomersTabState extends ConsumerState<CustomersTab> {
     }
   }
 
+  Future<void> _onVoiceUtterance(String transcript) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final parsed = parseCustomerUtterance(transcript);
+    if (parsed == null) {
+      messenger.showSnackBar(SnackBar(content: Text('No entendí: "$transcript"')));
+      return;
+    }
+    try {
+      await ref.read(customersRepositoryProvider).createCustomer(
+            name: parsed.name,
+            phone: parsed.phone,
+          );
+      ref.invalidate(customersProvider);
+      messenger.showSnackBar(SnackBar(
+        duration: const Duration(seconds: 1),
+        content: Text('Agregado: ${parsed.name}'
+            '${parsed.phone == null ? '' : ' · tel ${parsed.phone}'}'),
+      ));
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text('No se pudo agregar: $error')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final customers = ref.watch(customersProvider);
@@ -75,6 +100,10 @@ class _CustomersTabState extends ConsumerState<CustomersTab> {
               IconButton(icon: const Icon(Icons.person_add), onPressed: _addCustomer),
             ],
           ),
+        ),
+        VoiceCaptureButton(
+          idleLabel: 'Dictar clientes ("Juan Pérez teléfono 5551234567")',
+          onUtterance: _onVoiceUtterance,
         ),
         const Divider(height: 1),
         Expanded(

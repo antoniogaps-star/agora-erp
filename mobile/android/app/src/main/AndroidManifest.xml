@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Necesario para hablar con la API (el template solo lo incluye en debug). -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Dictado por voz -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
         android:label="Ágora ERP"
         android:name="${applicationName}"
@@ -43,6 +45,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Requerido en Android 11+ para el reconocimiento de voz -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>
