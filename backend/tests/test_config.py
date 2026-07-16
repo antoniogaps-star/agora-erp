@@ -31,3 +31,19 @@ def test_secret_debil_permitido_en_local(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setenv("JWT_SECRET", "CHANGE_ME")
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
     assert settings.app_env == "local"
+
+
+def test_url_de_proveedor_se_normaliza_a_asyncpg(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Railway/Heroku entregan postgres:// — debe convertirse a postgresql+asyncpg://."""
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@host:5432/db")
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.database_url == "postgresql+asyncpg://u:p@host:5432/db"
+
+    monkeypatch.setenv("DATABASE_URL", "postgres://u:p@host:5432/db")
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.database_url == "postgresql+asyncpg://u:p@host:5432/db"
+
+    # Una URL ya correcta no se toca.
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@host:5432/db")
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.database_url == "postgresql+asyncpg://u:p@host:5432/db"

@@ -7,7 +7,7 @@ módulos: importar `settings` de aquí. Ver docs/06_Backend.md y docs/09_Segurid
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["local", "test", "staging", "production"]
@@ -51,6 +51,22 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @field_validator("database_url", "migration_database_url", mode="before")
+    @classmethod
+    def _normalize_pg_scheme(cls, value: str | None) -> str | None:
+        """Acepta URLs de Postgres de cualquier proveedor (Railway, Render, Heroku…).
+
+        Los proveedores entregan `postgres://` o `postgresql://`; SQLAlchemy async
+        necesita `postgresql+asyncpg://`. Se normaliza aquí para poder pegar la
+        variable del proveedor tal cual.
+        """
+        if value is None:
+            return value
+        for prefix in ("postgres://", "postgresql://"):
+            if value.startswith(prefix) and not value.startswith("postgresql+"):
+                return "postgresql+asyncpg://" + value[len(prefix):]
+        return value
 
     @model_validator(mode="after")
     def _require_strong_secret_in_real_envs(self) -> "Settings":

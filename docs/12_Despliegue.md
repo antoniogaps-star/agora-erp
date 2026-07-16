@@ -60,6 +60,28 @@ La app móvil se conecta a la API por su URL pública:
 flutter run --dart-define=API_URL=https://tu-dominio/api/v1
 ```
 
+## Despliegue en Railway (PaaS)
+
+El repo trae `railway.json` (apunta al Dockerfile del backend). Pasos:
+
+1. En [railway.app](https://railway.app): **New Project → Deploy from GitHub repo** → `agora-erp`.
+2. En el proyecto: **+ New → Database → PostgreSQL**.
+3. En el servicio del backend → **Variables**:
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (referencia a la base; el backend
+     normaliza el esquema `postgres://` automáticamente)
+   - `APP_ENV` = `production`
+   - `JWT_SECRET` = una clave fuerte (>= 32 caracteres)
+4. **Settings → Networking → Generate Domain** → obtienes `https://…up.railway.app`.
+5. El arranque aplica migraciones solo; siembra datos con
+   `python scripts/seed.py https://TU-DOMINIO.up.railway.app`.
+
+> Nota RLS: en Railway hay un solo usuario de base (no superusuario). Como todas las
+> tablas usan `FORCE ROW LEVEL SECURITY`, el aislamiento multi-tenant se mantiene
+> aunque migraciones y app compartan usuario. No definas `MIGRATION_DATABASE_URL`.
+
+La app móvil se regenera apuntando al dominio: Actions → **APK Android → Run
+workflow** con `https://TU-DOMINIO.up.railway.app/api/v1`.
+
 ## Notas de producción (pendientes)
 
 - TLS/HTTPS delante de nginx (terminación en un balanceador o certbot).

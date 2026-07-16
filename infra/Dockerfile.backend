@@ -13,5 +13,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 EXPOSE 8000
 
-# Aplica migraciones (rol dueño) y luego arranca la API (rol de aplicación).
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Aplica migraciones y arranca la API. $PORT lo inyectan las plataformas (Railway,
+# Render, etc.); en local/compose usa 8000.
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
