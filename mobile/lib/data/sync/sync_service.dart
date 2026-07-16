@@ -3,44 +3,73 @@ import 'package:drift/drift.dart';
 
 import '../local/database.dart';
 
-/// Motor de sincronización (ESQUELETO). Implementa la mecánica del patrón outbox:
-/// subir los cambios locales pendientes y aplicar los del servidor. La resolución
-/// de conflictos por entidad se añade con el motor real (ver docs/07_App_Movil.md).
+/// Motor de sincronización (patrón outbox). Sube los cambios locales pendientes de las
+/// tres entidades y aplica los del servidor. Ver docs/07_App_Movil.md y ADR-005.
 class SyncService {
   SyncService(this._db, this._dio);
 
   final AppDatabase _db;
   final Dio _dio;
 
-  /// PUSH: envía la cola outbox (registros isDirty) y limpia el flag en los aceptados.
   Future<void> push() async {
-    final pending = await _db.pendingChanges();
-    if (pending.isEmpty) return;
+    final products = await _db.dirtyProducts();
+    final movements = await _db.dirtyMovements();
+    final sales = await _db.dirtySales();
 
-    final changes = pending
-        .map((p) => <String, dynamic>{
-              'entity': 'product',
-              'id': p.id,
-              'op': p.isDeleted ? 'delete' : 'upsert',
-              'version': p.version,
-              'updated_at': p.updatedAt.toUtc().toIso8601String(),
-              'data': {'name': p.name, 'price_cents': p.priceCents},
-            })
-        .toList();
+    final changes = <Map<String, dynamic>>[
+      for (final p in products)
+        {
+          'entity': 'product',
+          'id': p.id,
+          'op': p.isDeleted ? 'delete' : 'upsert',
+          'version': p.version,
+          'updated_at': p.updatedAt.toUtc().toIso8601String(),
+          'data': {'name': p.name, 'price_cents': p.priceCents},
+        },
+      for (final m in movements)
+        {
+          'entity': 'stock_movement',
+          'id': m.id,
+          'op': 'upsert',
+          'version': m.version,
+          'updated_at': m.updatedAt.toUtc().toIso8601String(),
+          'data': {'product_id': m.productId, 'delta': m.delta, 'reason': m.reason},
+        },
+      for (final s in sales)
+        {
+          'entity': 'sale',
+          'id': s.id,
+          'op': 'upsert',
+          'version': s.version,
+          'updated_at': s.updatedAt.toUtc().toIso8601String(),
+          'data': {
+            'product_id': s.productId,
+            'quantity': s.quantity,
+            'unit_price_cents': s.unitPriceCents,
+            'total_cents': s.totalCents,
+          },
+        },
+    ];
+
+    if (changes.isEmpty) return;
 
     final response = await _dio.post('/sync/push', data: {'changes': changes});
     final results = (response.data['results'] as List).cast<Map<String, dynamic>>();
 
-    for (final result in results) {
-      if (result['status'] == 'applied') {
-        await (_db.update(_db.products)
-              ..where((t) => t.id.equals(result['id'] as String)))
-            .write(const ProductsCompanion(isDirty: Value(false)));
+    for (final r in results) {
+      if (r['status'] != 'applied') continue;
+      final id = r['id'] as String;
+      switch (r['entity']) {
+        case 'product':
+          await _db.markProductSynced(id);
+        case 'stock_movement':
+          await _db.markMovementSynced(id);
+        case 'sale':
+          await _db.markSaleSynced(id);
       }
     }
   }
 
-  /// PULL: descarga los cambios del servidor (deltas) y los aplica a la base local.
   Future<void> pull() async {
     final response = await _dio.get('/sync/pull');
     final changes = (response.data['changes'] as List).cast<Map<String, dynamic>>();
@@ -50,23 +79,43 @@ class SyncService {
   }
 
   Future<void> _applyRemote(Map<String, dynamic> change) async {
-    if (change['entity'] != 'product') return;
     final id = change['id'] as String;
-
-    if (change['op'] == 'delete') {
-      await (_db.delete(_db.products)..where((t) => t.id.equals(id))).go();
-      return;
+    final data = (change['data'] as Map?)?.cast<String, dynamic>() ?? {};
+    switch (change['entity']) {
+      case 'product':
+        await _db.into(_db.products).insertOnConflictUpdate(
+              ProductsCompanion.insert(
+                id: id,
+                tenantId: change['tenant_id'] as String? ?? '',
+                name: data['name'] as String? ?? '',
+                priceCents: Value(data['price_cents'] as int? ?? 0),
+                isDeleted: Value(change['op'] == 'delete'),
+                isDirty: const Value(false),
+              ),
+            );
+      case 'stock_movement':
+        await _db.into(_db.stockMovements).insertOnConflictUpdate(
+              StockMovementsCompanion.insert(
+                id: id,
+                tenantId: change['tenant_id'] as String? ?? '',
+                productId: data['product_id'] as String,
+                delta: data['delta'] as int,
+                reason: data['reason'] as String,
+                isDirty: const Value(false),
+              ),
+            );
+      case 'sale':
+        await _db.into(_db.sales).insertOnConflictUpdate(
+              SalesCompanion.insert(
+                id: id,
+                tenantId: change['tenant_id'] as String? ?? '',
+                productId: data['product_id'] as String,
+                quantity: data['quantity'] as int,
+                unitPriceCents: data['unit_price_cents'] as int,
+                totalCents: data['total_cents'] as int,
+                isDirty: const Value(false),
+              ),
+            );
     }
-
-    final data = change['data'] as Map<String, dynamic>;
-    await _db.into(_db.products).insertOnConflictUpdate(
-          ProductsCompanion.insert(
-            id: id,
-            tenantId: change['tenant_id'] as String? ?? '',
-            name: data['name'] as String,
-            priceCents: Value(data['price_cents'] as int? ?? 0),
-            isDirty: const Value(false),
-          ),
-        );
   }
 }

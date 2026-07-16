@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/local/database.dart';
 import '../data/sync/sync_service.dart';
 import '../features/auth/auth_repository.dart';
+import '../features/inventory/inventory_repository.dart';
 import 'api_client.dart';
 import 'secure_store.dart';
 
@@ -26,6 +27,18 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 
 final syncServiceProvider = Provider<SyncService>(
   (ref) => SyncService(ref.watch(databaseProvider), ref.watch(dioProvider)),
+);
+
+final inventoryRepositoryProvider = Provider<InventoryRepository>(
+  (ref) => InventoryRepository(
+    ref.watch(databaseProvider),
+    ref.watch(authRepositoryProvider),
+  ),
+);
+
+/// Productos locales con su stock (suma de movimientos). Se invalida tras cada acción.
+final productsProvider = FutureProvider.autoDispose<List<(Product, int)>>(
+  (ref) => ref.watch(inventoryRepositoryProvider).productsWithStock(),
 );
 
 /// Estado de sesión: true si hay un refresh token guardado.
