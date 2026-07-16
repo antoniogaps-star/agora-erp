@@ -15,8 +15,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import settings
 from app.db.session import engine
+from app.modules.accounting.router import router as accounting_router
 from app.modules.auth.router import router as auth_router
+from app.modules.customers.router import router as customers_router
+from app.modules.invoices.router import router as invoices_router
 from app.modules.products.router import router as products_router
+from app.modules.reports.router import router as reports_router
 from app.modules.sales.router import router as sales_router
 from app.modules.users.router import router as users_router
 from app.sync.router import router as sync_router
@@ -75,4 +79,8 @@ app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(users_router, prefix=API_PREFIX)
 app.include_router(products_router, prefix=API_PREFIX)
 app.include_router(sales_router, prefix=API_PREFIX)
+app.include_router(customers_router, prefix=API_PREFIX)
+app.include_router(invoices_router, prefix=API_PREFIX)
+app.include_router(reports_router, prefix=API_PREFIX)
+app.include_router(accounting_router, prefix=API_PREFIX)
 app.include_router(sync_router, prefix=API_PREFIX)

@@ -17,11 +17,12 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.customers.models import Customer
 from app.modules.products.models import Product, StockMovement
 from app.modules.sales.models import Sale
 from app.sync.schemas import Change, ChangeResult, PullResponse, PushRequest, PushResponse
 
-SUPPORTED_ENTITIES = {"product", "stock_movement", "sale"}
+SUPPORTED_ENTITIES = {"product", "stock_movement", "sale", "customer"}
 
 
 # ── Serialización modelo → data ──────────────────────────────
@@ -42,12 +43,18 @@ def _sale_data(s: Sale) -> dict[str, Any]:
     }
 
 
+def _customer_data(c: Customer) -> dict[str, Any]:
+    return {"name": c.name, "email": c.email, "phone": c.phone}
+
+
 # ── PUSH ─────────────────────────────────────────────────────
 async def push(session: AsyncSession, tenant_id: UUID, payload: PushRequest) -> PushResponse:
     results: list[ChangeResult] = []
     for change in payload.changes:
         if change.entity == "product":
             results.append(await _push_product(session, tenant_id, change))
+        elif change.entity == "customer":
+            results.append(await _push_customer(session, tenant_id, change))
         elif change.entity == "stock_movement":
             results.append(await _push_movement(session, tenant_id, change))
         elif change.entity == "sale":
@@ -90,6 +97,43 @@ async def _push_product(session: AsyncSession, tenant_id: UUID, ch: Change) -> C
     await session.flush()
     return ChangeResult(
         id=ch.id, entity="product", status="applied", server_version=existing.version
+    )
+
+
+async def _push_customer(session: AsyncSession, tenant_id: UUID, ch: Change) -> ChangeResult:
+    data = ch.data or {}
+    existing = await session.get(Customer, ch.id)
+    if existing is None:
+        session.add(
+            Customer(
+                id=ch.id,
+                tenant_id=tenant_id,
+                name=data.get("name", ""),
+                email=data.get("email"),
+                phone=data.get("phone"),
+                is_deleted=(ch.op == "delete"),
+                version=ch.version,
+                updated_at=ch.updated_at,
+            )
+        )
+        await session.flush()
+        return ChangeResult(
+            id=ch.id, entity="customer", status="applied", server_version=ch.version
+        )
+
+    if ch.updated_at < existing.updated_at:
+        return ChangeResult(
+            id=ch.id, entity="customer", status="conflict", server_version=existing.version
+        )
+    existing.name = data.get("name", existing.name)
+    existing.email = data.get("email", existing.email)
+    existing.phone = data.get("phone", existing.phone)
+    existing.is_deleted = ch.op == "delete"
+    existing.version = ch.version
+    existing.updated_at = ch.updated_at
+    await session.flush()
+    return ChangeResult(
+        id=ch.id, entity="customer", status="applied", server_version=existing.version
     )
 
 
@@ -137,6 +181,7 @@ async def pull(session: AsyncSession, since: str | None) -> PullResponse:
     since_dt = datetime.fromisoformat(since) if since else None
     changes: list[Change] = []
     changes += await _pull(session, "product", Product, _product_data, since_dt)
+    changes += await _pull(session, "customer", Customer, _customer_data, since_dt)
     changes += await _pull(session, "stock_movement", StockMovement, _movement_data, since_dt)
     changes += await _pull(session, "sale", Sale, _sale_data, since_dt)
     return PullResponse(changes=changes, cursor=datetime.now(UTC).isoformat())
