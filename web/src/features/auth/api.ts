@@ -28,3 +28,7 @@ export async function register(input: RegisterInput): Promise<TokenResponse> {
   const { data } = await api.post("/auth/register", input);
   return tokenSchema.parse(data);
 }
+
+export async function logout(refreshToken: string): Promise<void> {
+  await api.post("/auth/logout", { refresh_token: refreshToken });
+}

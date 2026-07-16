@@ -43,7 +43,17 @@ class AuthRepository {
     return Map<String, dynamic>.from(response.data as Map);
   }
 
-  Future<void> logout() => _store.clear();
+  Future<void> logout() async {
+    final refresh = await _store.refreshToken;
+    if (refresh != null) {
+      try {
+        await _dio.post('/auth/logout', data: {'refresh_token': refresh});
+      } catch (_) {
+        // aunque falle la revocación en servidor, cerramos sesión localmente
+      }
+    }
+    await _store.clear();
+  }
 
   Future<bool> hasSession() async => (await _store.refreshToken) != null;
 

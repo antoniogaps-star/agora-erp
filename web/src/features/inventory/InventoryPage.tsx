@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { logout as logoutApi } from "@/features/auth/api";
 import { fetchMe } from "@/features/dashboard/api";
 import { useAuthStore } from "@/shared/auth/store";
 
@@ -43,7 +44,15 @@ export function InventoryPage() {
     onError: () => setError("Stock insuficiente"),
   });
 
-  function logout() {
+  async function logout() {
+    const refresh = useAuthStore.getState().refreshToken;
+    if (refresh) {
+      try {
+        await logoutApi(refresh); // revoca el refresh en el servidor
+      } catch {
+        // aunque falle, cerramos sesión localmente
+      }
+    }
     clear();
     navigate("/login");
   }

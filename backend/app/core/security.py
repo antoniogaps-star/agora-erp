@@ -4,9 +4,10 @@ Ver docs/09_Seguridad.md y ADR-004. Ningún otro módulo debe implementar hashin
 firmar tokens: todo pasa por aquí.
 """
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import jwt
 from argon2 import PasswordHasher
@@ -41,6 +42,7 @@ def _create_token(
         "tenant_id": str(tenant_id),
         "role": role,
         "type": token_type,
+        "jti": uuid4().hex,  # único: evita colisiones de hash entre tokens del mismo segundo
         "iat": now,
         "exp": now + ttl,
     }
@@ -70,3 +72,8 @@ def create_refresh_token(*, user_id: UUID, tenant_id: UUID, role: str) -> str:
 def decode_token(token: str) -> dict[str, Any]:
     """Decodifica y valida firma/expiración. Lanza jwt.PyJWTError si es inválido."""
     return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+
+
+def hash_token(token: str) -> str:
+    """SHA-256 del token, para almacenarlo sin guardar el token en claro."""
+    return hashlib.sha256(token.encode()).hexdigest()

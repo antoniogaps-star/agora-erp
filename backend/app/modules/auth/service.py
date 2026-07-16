@@ -6,11 +6,25 @@ resuelven primero el tenant por su `slug` (la tabla `tenants` no tiene RLS), fij
 empresa. El tenant nunca se toma de un token aún inexistente en estos endpoints públicos.
 """
 
+from datetime import UTC, datetime, timedelta
+from uuid import UUID
+
+import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import hash_password, verify_password
+from app.core.config import settings
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    hash_token,
+    verify_password,
+)
 from app.db.rls import set_tenant
+from app.modules.auth.models import RefreshToken
+from app.modules.auth.schemas import TokenResponse
 from app.modules.tenants.models import Tenant
 from app.modules.users.models import User
 from app.shared.errors import api_error
@@ -55,3 +69,69 @@ async def authenticate(session: AsyncSession, *, company_slug: str, email: str,
         if user is None or not user.is_active or not verify_password(user.password_hash, password):
             raise invalid
     return tenant, user
+
+
+async def _store_tokens(
+    session: AsyncSession, *, user_id: UUID, tenant_id: UUID, role: str
+) -> TokenResponse:
+    """Emite access+refresh y guarda el hash del refresh (para poder revocarlo)."""
+    access = create_access_token(user_id=user_id, tenant_id=tenant_id, role=role)
+    refresh = create_refresh_token(user_id=user_id, tenant_id=tenant_id, role=role)
+    session.add(
+        RefreshToken(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            token_hash=hash_token(refresh),
+            expires_at=datetime.now(UTC) + timedelta(days=settings.refresh_token_ttl_days),
+        )
+    )
+    await session.flush()
+    return TokenResponse(access_token=access, refresh_token=refresh)
+
+
+async def issue_tokens(
+    session: AsyncSession, *, user_id: UUID, tenant_id: UUID, role: str
+) -> TokenResponse:
+    """Emite tokens tras register/login (fija el tenant para poder escribir con RLS)."""
+    async with session.begin():
+        await set_tenant(session, tenant_id)
+        return await _store_tokens(session, user_id=user_id, tenant_id=tenant_id, role=role)
+
+
+async def rotate_refresh(session: AsyncSession, token: str) -> TokenResponse:
+    """Valida el refresh contra la base, lo revoca y emite uno nuevo (rotación)."""
+    invalid = api_error(401, "INVALID_TOKEN", "Refresh token inválido o expirado")
+    try:
+        payload = decode_token(token)
+    except jwt.PyJWTError as exc:
+        raise invalid from exc
+    if payload.get("type") != "refresh":
+        raise invalid
+
+    tenant_id = UUID(payload["tenant_id"])
+    async with session.begin():
+        await set_tenant(session, tenant_id)
+        row = await session.scalar(
+            select(RefreshToken).where(RefreshToken.token_hash == hash_token(token))
+        )
+        if row is None or row.revoked_at is not None or row.expires_at < datetime.now(UTC):
+            raise invalid
+        row.revoked_at = datetime.now(UTC)  # rotación: el usado ya no vuelve a servir
+        return await _store_tokens(
+            session, user_id=UUID(payload["sub"]), tenant_id=tenant_id, role=payload["role"]
+        )
+
+
+async def logout(session: AsyncSession, token: str) -> None:
+    """Revoca el refresh token (idempotente: un token inválido no hace nada)."""
+    try:
+        payload = decode_token(token)
+    except jwt.PyJWTError:
+        return
+    async with session.begin():
+        await set_tenant(session, UUID(payload["tenant_id"]))
+        row = await session.scalar(
+            select(RefreshToken).where(RefreshToken.token_hash == hash_token(token))
+        )
+        if row is not None and row.revoked_at is None:
+            row.revoked_at = datetime.now(UTC)

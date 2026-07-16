@@ -1,13 +1,10 @@
-"""Endpoints de autenticación: /register, /login, /refresh."""
+"""Endpoints de autenticación: /register, /login, /refresh, /logout."""
 
 from typing import Annotated
-from uuid import UUID
 
-import jwt
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.db.session import get_session
 from app.modules.auth import service
 from app.modules.auth.schemas import (
@@ -16,18 +13,10 @@ from app.modules.auth.schemas import (
     RegisterRequest,
     TokenResponse,
 )
-from app.shared.errors import api_error
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
-
-
-def _tokens_for(user_id: UUID, tenant_id: UUID, role: str) -> TokenResponse:
-    return TokenResponse(
-        access_token=create_access_token(user_id=user_id, tenant_id=tenant_id, role=role),
-        refresh_token=create_refresh_token(user_id=user_id, tenant_id=tenant_id, role=role),
-    )
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -39,7 +28,9 @@ async def register(data: RegisterRequest, session: SessionDep) -> TokenResponse:
         email=data.email,
         password=data.password,
     )
-    return _tokens_for(user.id, tenant.id, user.role)
+    return await service.issue_tokens(
+        session, user_id=user.id, tenant_id=tenant.id, role=user.role
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -50,22 +41,16 @@ async def login(data: LoginRequest, session: SessionDep) -> TokenResponse:
         email=data.email,
         password=data.password,
     )
-    return _tokens_for(user.id, tenant.id, user.role)
+    return await service.issue_tokens(
+        session, user_id=user.id, tenant_id=tenant.id, role=user.role
+    )
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(data: RefreshRequest) -> TokenResponse:
-    try:
-        payload = decode_token(data.refresh_token)
-    except jwt.PyJWTError as exc:
-        raise api_error(401, "INVALID_TOKEN", "Refresh token inválido o expirado") from exc
-    if payload.get("type") != "refresh":
-        raise api_error(401, "INVALID_TOKEN", "Se requiere un refresh token")
-    return TokenResponse(
-        access_token=create_access_token(
-            user_id=UUID(payload["sub"]),
-            tenant_id=UUID(payload["tenant_id"]),
-            role=payload["role"],
-        ),
-        refresh_token=data.refresh_token,
-    )
+async def refresh(data: RefreshRequest, session: SessionDep) -> TokenResponse:
+    return await service.rotate_refresh(session, data.refresh_token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(data: RefreshRequest, session: SessionDep) -> None:
+    await service.logout(session, data.refresh_token)
