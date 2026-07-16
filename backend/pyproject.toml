@@ -49,3 +49,7 @@ testpaths = ["tests"]
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+# Empaquetar solo la app; 'tests' y 'alembic' no son parte del paquete instalable.
+[tool.setuptools.packages.find]
+include = ["app*"]
