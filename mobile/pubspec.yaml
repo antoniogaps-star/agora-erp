@@ -9,9 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Base local cifrada
+  # Base local cifrada (SQLCipher)
   drift: ^2.21.0
-  sqlite3_flutter_libs: ^0.5.26
+  sqlcipher_flutter_libs: ^0.6.4
+  sqlite3: ^2.4.6
   # Estado / DI
   flutter_riverpod: ^2.6.1
   # Modelos inmutables

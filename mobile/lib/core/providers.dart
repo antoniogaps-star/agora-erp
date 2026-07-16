@@ -20,7 +20,7 @@ final authRepositoryProvider = Provider<AuthRepository>(
 );
 
 final databaseProvider = Provider<AppDatabase>((ref) {
-  final db = AppDatabase();
+  final db = AppDatabase.encrypted(ref.watch(secureStoreProvider));
   ref.onDispose(db.close);
   return db;
 });

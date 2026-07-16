@@ -3,6 +3,10 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
+import 'package:sqlite3/open.dart';
+
+import '../../core/secure_store.dart';
 
 part 'database.g.dart';
 
@@ -53,7 +57,11 @@ class Sales extends Table with _SyncColumns {
 
 @DriftDatabase(tables: [Products, StockMovements, Sales])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([QueryExecutor? executor]) : super(executor ?? _open());
+  /// Constructor genérico. Sin executor usa una base en memoria (útil en tests).
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? NativeDatabase.memory());
+
+  /// Base de producción: fichero cifrado con SQLCipher usando la llave del almacén seguro.
+  AppDatabase.encrypted(SecureStore store) : super(_openEncrypted(store));
 
   @override
   int get schemaVersion => 1;
@@ -96,11 +104,35 @@ class AppDatabase extends _$AppDatabase {
           .write(const SalesCompanion(isDirty: Value(false)));
 }
 
-QueryExecutor _open() {
+/// Abre la base local CIFRADA con SQLCipher (ADR-004). La llave se aplica con
+/// `PRAGMA key` antes de cualquier otra sentencia, en el isolate de background.
+QueryExecutor _openEncrypted(SecureStore store) {
   return LazyDatabase(() async {
+    if (Platform.isAndroid) {
+      await applyWorkaroundToOpenSqlCipherOnOldAndroidVersions();
+      open.overrideFor(OperatingSystem.android, openCipherOnAndroid);
+    }
+
+    final key = await store.databaseKey();
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/agora.sqlite');
-    // TODO(seguridad): envolver con SQLCipher (cifrado en reposo) — ADR-004.
-    return NativeDatabase.createInBackground(file);
+
+    return NativeDatabase.createInBackground(
+      file,
+      isolateSetup: () async {
+        if (Platform.isAndroid) {
+          open.overrideFor(OperatingSystem.android, openCipherOnAndroid);
+        }
+      },
+      setup: (db) {
+        // Confirma que el binario es SQLCipher (si no, la base NO estaría cifrada).
+        final cipher = db.select('PRAGMA cipher_version;');
+        if (cipher.isEmpty) {
+          throw StateError('SQLCipher no disponible: la base no quedaría cifrada');
+        }
+        final escaped = key.replaceAll("'", "''");
+        db.execute("PRAGMA key = '$escaped';");
+      },
+    );
   });
 }
