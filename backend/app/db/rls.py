@@ -16,8 +16,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def set_tenant(session: AsyncSession, tenant_id: UUID) -> None:
-    """Fija el tenant de la transacción actual para que RLS lo aplique."""
+    """Fija el tenant de la transacción actual para que RLS lo aplique.
+
+    Se usa set_config(clave, valor, is_local=true) en vez de `SET LOCAL ... = :param`
+    porque los comandos SET de Postgres NO admiten parámetros ligados. El tercer
+    argumento `true` limita el ajuste a la transacción actual (equivalente a SET LOCAL).
+    """
     await session.execute(
-        text("SET LOCAL app.current_tenant = :tenant_id"),
+        text("SELECT set_config('app.current_tenant', :tenant_id, true)"),
         {"tenant_id": str(tenant_id)},
     )

@@ -100,6 +100,20 @@ async def _clean_tables():
         await engine.dispose()
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def _dispose_app_engine():
+    """Desecha el engine global de la app tras cada test.
+
+    Cada test corre en su propio event loop; sin esto, el pool del engine global
+    conservaría conexiones ligadas a un loop ya cerrado (RuntimeError: Event loop is
+    closed). Se desecha dentro del loop del test, cerrando las conexiones limpiamente.
+    """
+    yield
+    from app.db.session import engine as app_engine
+
+    await app_engine.dispose()
+
+
 @pytest_asyncio.fixture
 async def app_sessions() -> async_sessionmaker:
     """Fábrica de sesiones conectadas con el rol de APLICACIÓN (sujeto a RLS)."""
