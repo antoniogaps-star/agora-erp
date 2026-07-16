@@ -81,6 +81,25 @@ button:disabled {
   color: #15803d;
 }
 
+/* Navegación en pantallas chicas: marca+usuario arriba, pestañas deslizables abajo */
+@media (max-width: 640px) {
+  .topnav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem 0.9rem;
+  }
+  .navuser { margin-left: auto; }
+  .navuser span { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .navlinks {
+    order: 3;
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .navlinks a { white-space: nowrap; }
+}
+
 .secondary {
   background: transparent;
   color: #2f6df6;
