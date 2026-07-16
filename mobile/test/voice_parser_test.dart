@@ -35,6 +35,27 @@ void main() {
       expect(parseProductUtterance(''), isNull);
       expect(parseProductUtterance('50 20'), isNull);
     });
+
+    test('números dictados en PALABRAS (el caso real de Toño)', () {
+      final p = parseProductUtterance('café cincuenta pesos veinte piezas')!;
+      expect(p.name, 'Café');
+      expect(p.priceCents, 5000);
+      expect(p.stock, 20);
+    });
+
+    test('números compuestos en palabras', () {
+      final p = parseProductUtterance('galletas ciento veinte pesos treinta y cinco piezas')!;
+      expect(p.name, 'Galletas');
+      expect(p.priceCents, 12000);
+      expect(p.stock, 35);
+    });
+
+    test('mezcla palabra + dígito', () {
+      final p = parseProductUtterance('té verde ochenta 30')!;
+      expect(p.name, 'Té verde');
+      expect(p.priceCents, 8000);
+      expect(p.stock, 30);
+    });
   });
 
   group('parseCustomerUtterance', () {

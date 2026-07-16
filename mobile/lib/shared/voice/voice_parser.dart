@@ -9,6 +9,8 @@
 ///     "Juan Pérez teléfono 555 123 4567" → Juan Pérez, 5551234567
 library;
 
+import 'spanish_numbers.dart';
+
 class ParsedProduct {
   const ParsedProduct({
     required this.name,
@@ -36,7 +38,8 @@ String _capitalize(String text) =>
     text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
 
 ParsedProduct? parseProductUtterance(String transcript) {
-  final text = transcript.trim().toLowerCase();
+  // "café cincuenta pesos veinte piezas" → "café 50 pesos 20 piezas"
+  final text = normalizeSpanishNumbers(transcript.trim()).toLowerCase();
   if (text.isEmpty) return null;
 
   final numbers = _numberPattern.allMatches(text).toList();
@@ -61,7 +64,7 @@ ParsedProduct? parseProductUtterance(String transcript) {
 }
 
 ParsedCustomer? parseCustomerUtterance(String transcript) {
-  final text = transcript.trim();
+  final text = normalizeSpanishNumbers(transcript.trim());
   if (text.isEmpty) return null;
 
   // Un bloque de 7+ dígitos (con espacios o guiones) se toma como teléfono.
