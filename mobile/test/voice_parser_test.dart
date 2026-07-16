@@ -3,58 +3,75 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('parseProductUtterance', () {
-    test('nombre + precio + stock', () {
-      final p = parseProductUtterance('café 50 pesos 20 piezas')!;
-      expect(p.name, 'Café');
-      expect(p.priceCents, 5000);
-      expect(p.stock, 20);
+    test('cajas con tamaño → multiplica a piezas', () {
+      final p = parseProductUtterance('coca cola 5 cajas de 24')!;
+      expect(p.name, 'Coca cola');
+      expect(p.pieces, 120);
     });
 
-    test('con palabras "precio" y "stock" y decimales', () {
-      final p = parseProductUtterance('té verde precio 80.50 stock 30')!;
-      expect(p.name, 'Té verde');
-      expect(p.priceCents, 8050);
-      expect(p.stock, 30);
+    test('six (tamaño fijo 6)', () {
+      final p = parseProductUtterance('cerveza 3 six')!;
+      expect(p.name, 'Cerveza');
+      expect(p.pieces, 18);
     });
 
-    test('decimal con coma (dictado en español)', () {
-      final p = parseProductUtterance('galletas 25,50 12')!;
+    test('docenas (tamaño fijo 12)', () {
+      final p = parseProductUtterance('galletas 2 docenas')!;
       expect(p.name, 'Galletas');
-      expect(p.priceCents, 2550);
-      expect(p.stock, 12);
+      expect(p.pieces, 24);
     });
 
-    test('solo nombre', () {
-      final p = parseProductUtterance('galletas')!;
-      expect(p.name, 'Galletas');
-      expect(p.priceCents, 0);
-      expect(p.stock, 0);
+    test('piezas directas', () {
+      final p = parseProductUtterance('agua 50 piezas')!;
+      expect(p.name, 'Agua');
+      expect(p.pieces, 50);
     });
 
-    test('vacío o solo números → null', () {
+    test('paquetes con tamaño', () {
+      final p = parseProductUtterance('cigarros 10 paquetes de 20')!;
+      expect(p.name, 'Cigarros');
+      expect(p.pieces, 200);
+    });
+
+    test('números dictados en palabras', () {
+      final p = parseProductUtterance('coca cola cinco cajas de veinticuatro')!;
+      expect(p.name, 'Coca cola');
+      expect(p.pieces, 120);
+    });
+
+    test('número suelto = piezas', () {
+      final p = parseProductUtterance('sabritas 40')!;
+      expect(p.name, 'Sabritas');
+      expect(p.pieces, 40);
+    });
+
+    test('solo nombre → 0 piezas', () {
+      final p = parseProductUtterance('jugo')!;
+      expect(p.name, 'Jugo');
+      expect(p.pieces, 0);
+    });
+
+    test('media docena', () {
+      final p = parseProductUtterance('pan media docena')!;
+      expect(p.name, 'Pan');
+      expect(p.pieces, 6);
+    });
+
+    test('presentación sin six/docena → un solo empaque', () {
+      final p = parseProductUtterance('cerveza six')!;
+      expect(p.name, 'Cerveza');
+      expect(p.pieces, 6);
+    });
+
+    test('caja sin "de N" → pide el tamaño', () {
+      final p = parseProductUtterance('coca cola 5 cajas')!;
+      expect(p.name, 'Coca cola');
+      expect(p.packSizeMissing, isTrue);
+      expect(p.presentation, 'cajas');
+    });
+
+    test('vacío → null', () {
       expect(parseProductUtterance(''), isNull);
-      expect(parseProductUtterance('50 20'), isNull);
-    });
-
-    test('números dictados en PALABRAS (el caso real de Toño)', () {
-      final p = parseProductUtterance('café cincuenta pesos veinte piezas')!;
-      expect(p.name, 'Café');
-      expect(p.priceCents, 5000);
-      expect(p.stock, 20);
-    });
-
-    test('números compuestos en palabras', () {
-      final p = parseProductUtterance('galletas ciento veinte pesos treinta y cinco piezas')!;
-      expect(p.name, 'Galletas');
-      expect(p.priceCents, 12000);
-      expect(p.stock, 35);
-    });
-
-    test('mezcla palabra + dígito', () {
-      final p = parseProductUtterance('té verde ochenta 30')!;
-      expect(p.name, 'Té verde');
-      expect(p.priceCents, 8000);
-      expect(p.stock, 30);
     });
   });
 

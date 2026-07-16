@@ -1,12 +1,16 @@
 /// Intérpretes de dictado: convierten una frase reconocida en datos estructurados.
 ///
-/// Formatos entendidos (el reconocedor de Android entrega los números como dígitos):
-///   Producto: `nombre [precio] [stock]`
-///     "café 50 pesos 20 piezas"        → Café, $50.00, stock 20
-///     "té verde precio 80.50 stock 30" → Té verde, $80.50, stock 30
-///     "galletas"                       → Galletas, $0, stock 0
-///   Cliente: `nombre [teléfono dígitos]`
-///     "Juan Pérez teléfono 555 123 4567" → Juan Pérez, 5551234567
+/// INVENTARIO (solo producto + piezas, en sus presentaciones de llegada):
+///   "coca cola 5 cajas de 24"   → Coca cola, 120 piezas
+///   "cerveza 3 six"             → Cerveza, 18 piezas   (six = 6)
+///   "galletas 2 docenas"        → Galletas, 24 piezas  (docena = 12)
+///   "agua 50 piezas"            → Agua, 50 piezas
+///   "cigarros 10 paquetes de 20"→ Cigarros, 200 piezas
+///   "jugo"                      → Jugo, 0 piezas (solo registra el producto)
+/// El precio NO se captura aquí; pertenece a la función de venta.
+///
+/// CLIENTE:
+///   "Juan Pérez teléfono 555 123 4567" → Juan Pérez, 5551234567
 library;
 
 import 'spanish_numbers.dart';
@@ -14,13 +18,17 @@ import 'spanish_numbers.dart';
 class ParsedProduct {
   const ParsedProduct({
     required this.name,
-    required this.priceCents,
-    required this.stock,
+    required this.pieces,
+    this.packSizeMissing = false,
+    this.presentation,
   });
 
   final String name;
-  final int priceCents;
-  final int stock;
+  final int pieces;
+
+  /// true si dictó "caja/paquete" sin decir "de N" — la UI debe pedir el tamaño.
+  final bool packSizeMissing;
+  final String? presentation;
 }
 
 class ParsedCustomer {
@@ -30,44 +38,86 @@ class ParsedCustomer {
   final String? phone;
 }
 
-final _numberPattern = RegExp(r'\d+(?:[.,]\d+)?');
-final _trailingFiller =
-    RegExp(r'\b(precio|cuesta|vale|a|de|en|el|la|con)\s*$', caseSensitive: false);
+// Presentaciones de tamaño FIJO.
+const _fixedPacks = {
+  'pieza': 1, 'piezas': 1, 'unidad': 1, 'unidades': 1, 'pza': 1, 'pzas': 1,
+  'par': 2, 'pares': 2, 'six': 6, 'sixpack': 6, 'docena': 12, 'docenas': 12,
+};
+
+// Presentaciones cuyo tamaño hay que decir ("de N").
+const _variablePacks = {'caja', 'cajas', 'paquete', 'paquetes', 'bulto', 'bultos'};
+
+final _isDigits = RegExp(r'^\d+$');
 
 String _capitalize(String text) =>
     text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
 
+int? _asInt(String token) => _isDigits.hasMatch(token) ? int.parse(token) : null;
+
 ParsedProduct? parseProductUtterance(String transcript) {
-  // "café cincuenta pesos veinte piezas" → "café 50 pesos 20 piezas"
-  final text = normalizeSpanishNumbers(transcript.trim()).toLowerCase();
-  if (text.isEmpty) return null;
+  // "cinco cajas de veinticuatro" → "5 cajas de 24"; "media docena" → "6 piezas".
+  var work = normalizeSpanishNumbers(transcript.trim());
+  work = work.replaceAll(RegExp('media docena', caseSensitive: false), '6 piezas');
+  if (work.isEmpty) return null;
 
-  final numbers = _numberPattern.allMatches(text).toList();
-  var namePart = numbers.isEmpty ? text : text.substring(0, numbers.first.start);
-  namePart = namePart.replaceAll(_trailingFiller, '').trim();
-  if (namePart.isEmpty) return null;
+  final orig = work.split(RegExp(r'\s+'));
+  final lower = orig.map((w) => w.toLowerCase()).toList();
 
-  double price = 0;
-  double stock = 0;
-  if (numbers.isNotEmpty) {
-    price = double.parse(numbers[0].group(0)!.replaceAll(',', '.'));
-  }
-  if (numbers.length > 1) {
-    stock = double.parse(numbers[1].group(0)!.replaceAll(',', '.'));
+  int? presIdx;
+  for (var i = 0; i < lower.length; i++) {
+    if (_fixedPacks.containsKey(lower[i]) || _variablePacks.contains(lower[i])) {
+      presIdx = i;
+      break;
+    }
   }
 
-  return ParsedProduct(
-    name: _capitalize(namePart),
-    priceCents: (price * 100).round(),
-    stock: stock.round(),
-  );
+  int pieces;
+  int nameBoundary;
+
+  if (presIdx != null) {
+    final pres = lower[presIdx];
+    // Cantidad = número inmediatamente antes de la presentación (o 1).
+    final qtyBefore = presIdx > 0 ? _asInt(lower[presIdx - 1]) : null;
+    final qty = qtyBefore ?? 1;
+    nameBoundary = qtyBefore != null ? presIdx - 1 : presIdx;
+
+    int multiplier;
+    if (_fixedPacks.containsKey(pres)) {
+      multiplier = _fixedPacks[pres]!;
+    } else {
+      // Variable: buscar "de <número>" justo después.
+      final hasSize = presIdx + 2 < lower.length &&
+          lower[presIdx + 1] == 'de' &&
+          _asInt(lower[presIdx + 2]) != null;
+      if (!hasSize) {
+        final name = _capitalize(orig.sublist(0, nameBoundary).join(' ').trim());
+        if (name.isEmpty) return null;
+        return ParsedProduct(name: name, pieces: 0, packSizeMissing: true, presentation: pres);
+      }
+      multiplier = _asInt(lower[presIdx + 2])!;
+    }
+    pieces = qty * multiplier;
+  } else {
+    // Sin presentación: un número suelto = piezas.
+    final numIdx = lower.indexWhere((t) => _asInt(t) != null);
+    if (numIdx == -1) {
+      pieces = 0;
+      nameBoundary = orig.length;
+    } else {
+      pieces = _asInt(lower[numIdx])!;
+      nameBoundary = numIdx;
+    }
+  }
+
+  final name = _capitalize(orig.sublist(0, nameBoundary).join(' ').trim());
+  if (name.isEmpty) return null;
+  return ParsedProduct(name: name, pieces: pieces);
 }
 
 ParsedCustomer? parseCustomerUtterance(String transcript) {
   final text = normalizeSpanishNumbers(transcript.trim());
   if (text.isEmpty) return null;
 
-  // Un bloque de 7+ dígitos (con espacios o guiones) se toma como teléfono.
   final phoneMatch = RegExp(r'\d[\d\s\-]{5,}\d').firstMatch(text);
   String? phone;
   var namePart = text;

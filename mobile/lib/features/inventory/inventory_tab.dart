@@ -6,7 +6,8 @@ import '../../shared/voice/voice_capture_button.dart';
 import '../../shared/voice/voice_parser.dart';
 import 'inventory_repository.dart';
 
-/// Pestaña de inventario: alta de productos y ventas, sobre la base local.
+/// Pestaña de inventario: producto + piezas (en sus presentaciones de llegada).
+/// El precio no se maneja aquí; pertenece a la venta.
 class InventoryTab extends ConsumerStatefulWidget {
   const InventoryTab({super.key});
 
@@ -16,14 +17,12 @@ class InventoryTab extends ConsumerStatefulWidget {
 
 class _InventoryTabState extends ConsumerState<InventoryTab> {
   final _name = TextEditingController();
-  final _price = TextEditingController();
-  final _stock = TextEditingController();
+  final _pieces = TextEditingController();
 
   @override
   void dispose() {
     _name.dispose();
-    _price.dispose();
-    _stock.dispose();
+    _pieces.dispose();
     super.dispose();
   }
 
@@ -36,20 +35,17 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
       );
       return;
     }
-    // El precio dictado puede traer coma decimal o texto ("50 pesos"): se limpia.
-    final priceText = _price.text.replaceAll(',', '.').replaceAll(RegExp(r'[^0-9.]'), '');
-    final stockText = _stock.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final pieces = int.tryParse(_pieces.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
     try {
       await ref.read(inventoryRepositoryProvider).createProduct(
             name: name,
-            priceCents: ((double.tryParse(priceText) ?? 0) * 100).round(),
-            initialStock: int.tryParse(stockText) ?? 0,
+            priceCents: 0,
+            initialStock: pieces,
           );
       _name.clear();
-      _price.clear();
-      _stock.clear();
+      _pieces.clear();
       ref.invalidate(productsProvider);
-      messenger.showSnackBar(SnackBar(content: Text('Producto "$name" agregado')));
+      messenger.showSnackBar(SnackBar(content: Text('Agregado: $name · $pieces piezas')));
     } catch (error) {
       messenger.showSnackBar(SnackBar(content: Text('No se pudo agregar: $error')));
     }
@@ -62,17 +58,24 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
       messenger.showSnackBar(SnackBar(content: Text('No entendí: "$transcript"')));
       return;
     }
+    if (parsed.packSizeMissing) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(
+          'Di el tamaño: "${parsed.name} 5 ${parsed.presentation} de 24"',
+        ),
+      ));
+      return;
+    }
     try {
       await ref.read(inventoryRepositoryProvider).createProduct(
             name: parsed.name,
-            priceCents: parsed.priceCents,
-            initialStock: parsed.stock,
+            priceCents: 0,
+            initialStock: parsed.pieces,
           );
       ref.invalidate(productsProvider);
-      final price = (parsed.priceCents / 100).toStringAsFixed(2);
       messenger.showSnackBar(SnackBar(
         duration: const Duration(seconds: 1),
-        content: Text('Agregado: ${parsed.name} — \$$price · stock ${parsed.stock}'),
+        content: Text('Agregado: ${parsed.name} · ${parsed.pieces} piezas'),
       ));
     } catch (error) {
       messenger.showSnackBar(SnackBar(content: Text('No se pudo agregar: $error')));
@@ -100,17 +103,9 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
-                  controller: _price,
+                  controller: _pieces,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Precio'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _stock,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Stock'),
+                  decoration: const InputDecoration(labelText: 'Piezas'),
                 ),
               ),
               IconButton(icon: const Icon(Icons.add_circle), onPressed: _addProduct),
@@ -118,7 +113,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
           ),
         ),
         VoiceCaptureButton(
-          idleLabel: 'Dictar productos ("café 50 pesos 20 piezas")',
+          idleLabel: 'Dictar inventario ("coca cola 5 cajas de 24")',
           onUtterance: _onVoiceUtterance,
         ),
         const Divider(height: 1),
@@ -133,9 +128,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                       for (final (product, stock) in rows)
                         ListTile(
                           title: Text(product.name),
-                          subtitle: Text(
-                            '\$${(product.priceCents / 100).toStringAsFixed(2)} · stock: $stock',
-                          ),
+                          subtitle: Text('$stock piezas'),
                           trailing: FilledButton(
                             onPressed: stock < 1
                                 ? null
