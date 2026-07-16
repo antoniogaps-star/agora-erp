@@ -15,6 +15,7 @@ class SyncService {
     final products = await _db.dirtyProducts();
     final movements = await _db.dirtyMovements();
     final sales = await _db.dirtySales();
+    final customers = await _db.dirtyCustomers();
 
     final changes = <Map<String, dynamic>>[
       for (final p in products)
@@ -49,6 +50,15 @@ class SyncService {
             'total_cents': s.totalCents,
           },
         },
+      for (final c in customers)
+        {
+          'entity': 'customer',
+          'id': c.id,
+          'op': c.isDeleted ? 'delete' : 'upsert',
+          'version': c.version,
+          'updated_at': c.updatedAt.toUtc().toIso8601String(),
+          'data': {'name': c.name, 'email': c.email, 'phone': c.phone},
+        },
     ];
 
     if (changes.isEmpty) return;
@@ -66,6 +76,8 @@ class SyncService {
           await _db.markMovementSynced(id);
         case 'sale':
           await _db.markSaleSynced(id);
+        case 'customer':
+          await _db.markCustomerSynced(id);
       }
     }
   }
@@ -113,6 +125,18 @@ class SyncService {
                 quantity: data['quantity'] as int,
                 unitPriceCents: data['unit_price_cents'] as int,
                 totalCents: data['total_cents'] as int,
+                isDirty: const Value(false),
+              ),
+            );
+      case 'customer':
+        await _db.into(_db.customers).insertOnConflictUpdate(
+              CustomersCompanion.insert(
+                id: id,
+                tenantId: change['tenant_id'] as String? ?? '',
+                name: data['name'] as String? ?? '',
+                email: Value(data['email'] as String?),
+                phone: Value(data['phone'] as String?),
+                isDeleted: Value(change['op'] == 'delete'),
                 isDirty: const Value(false),
               ),
             );

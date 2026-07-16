@@ -55,7 +55,19 @@ class Sales extends Table with _SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Products, StockMovements, Sales])
+/// Cliente. Se sincroniza con last-write-wins.
+class Customers extends Table with _SyncColumns {
+  TextColumn get id => text()();
+  TextColumn get tenantId => text()();
+  TextColumn get name => text()();
+  TextColumn get email => text().nullable()();
+  TextColumn get phone => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [Products, StockMovements, Sales, Customers])
 class AppDatabase extends _$AppDatabase {
   /// Constructor genérico. Sin executor usa una base en memoria (útil en tests).
   AppDatabase([QueryExecutor? executor]) : super(executor ?? NativeDatabase.memory());
@@ -64,7 +76,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.encrypted(SecureStore store) : super(_openEncrypted(store));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(customers); // v2: módulo de clientes
+          }
+        },
+      );
 
   // ── Consultas de inventario ────────────────────────────────
   Future<List<Product>> activeProducts() => (select(products)
@@ -86,12 +107,19 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // ── Cola outbox (registros pendientes de subir) ────────────
+  Future<List<Customer>> activeCustomers() => (select(customers)
+        ..where((c) => c.isDeleted.equals(false))
+        ..orderBy([(c) => OrderingTerm(expression: c.name)]))
+      .get();
+
   Future<List<Product>> dirtyProducts() =>
       (select(products)..where((p) => p.isDirty.equals(true))).get();
   Future<List<StockMovement>> dirtyMovements() =>
       (select(stockMovements)..where((m) => m.isDirty.equals(true))).get();
   Future<List<Sale>> dirtySales() =>
       (select(sales)..where((s) => s.isDirty.equals(true))).get();
+  Future<List<Customer>> dirtyCustomers() =>
+      (select(customers)..where((c) => c.isDirty.equals(true))).get();
 
   Future<void> markProductSynced(String id) =>
       (update(products)..where((p) => p.id.equals(id)))
@@ -102,6 +130,9 @@ class AppDatabase extends _$AppDatabase {
   Future<void> markSaleSynced(String id) =>
       (update(sales)..where((s) => s.id.equals(id)))
           .write(const SalesCompanion(isDirty: Value(false)));
+  Future<void> markCustomerSynced(String id) =>
+      (update(customers)..where((c) => c.id.equals(id)))
+          .write(const CustomersCompanion(isDirty: Value(false)));
 }
 
 /// Abre la base local CIFRADA con SQLCipher (ADR-004). La llave se aplica con

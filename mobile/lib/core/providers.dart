@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/local/database.dart';
 import '../data/sync/sync_service.dart';
 import '../features/auth/auth_repository.dart';
+import '../features/customers/customers_repository.dart';
 import '../features/inventory/inventory_repository.dart';
 import 'api_client.dart';
 import 'secure_store.dart';
@@ -39,6 +40,18 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>(
 /// Productos locales con su stock (suma de movimientos). Se invalida tras cada acción.
 final productsProvider = FutureProvider.autoDispose<List<(Product, int)>>(
   (ref) => ref.watch(inventoryRepositoryProvider).productsWithStock(),
+);
+
+final customersRepositoryProvider = Provider<CustomersRepository>(
+  (ref) => CustomersRepository(
+    ref.watch(databaseProvider),
+    ref.watch(authRepositoryProvider).currentTenantId,
+  ),
+);
+
+/// Clientes locales. Se invalida tras cada alta o sincronización.
+final customersProvider = FutureProvider.autoDispose<List<Customer>>(
+  (ref) => ref.watch(customersRepositoryProvider).listCustomers(),
 );
 
 /// Estado de sesión: true si hay un refresh token guardado.
