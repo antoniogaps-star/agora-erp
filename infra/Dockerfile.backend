@@ -1,4 +1,4 @@
-# Imagen del backend FastAPI — se usará en staging/producción (no obligatoria en local)
+# Imagen del backend FastAPI para staging/producción.
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
@@ -6,12 +6,12 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Dependencias primero (mejor cacheo)
-COPY backend/pyproject.toml ./
+# Se copia el código antes de instalar porque es un paquete editable (flat-layout).
+COPY backend/ ./
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -e .
 
-COPY backend/ ./
-
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Aplica migraciones (rol dueño) y luego arranca la API (rol de aplicación).
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

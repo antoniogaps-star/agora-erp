@@ -1,0 +1,47 @@
+# Stack completo de producción: Postgres + backend (con migraciones) + web (nginx).
+# Uso:  JWT_SECRET=... docker compose -f infra/docker-compose.prod.yml up --build
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: agora
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agora}
+      POSTGRES_DB: agora
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agora -d agora"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.backend
+    environment:
+      APP_ENV: production
+      # La app usa el rol NO superusuario; las migraciones, el rol dueño.
+      DATABASE_URL: postgresql+asyncpg://agora_app:agora_app@db:5432/agora
+      MIGRATION_DATABASE_URL: postgresql+asyncpg://agora:${POSTGRES_PASSWORD:-agora}@db:5432/agora
+      # Obligatorio y fuerte (el backend se niega a arrancar con clave débil en prod).
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET (>=32 chars) antes de levantar}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/web/Dockerfile
+      args:
+        VITE_API_URL: ""
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
