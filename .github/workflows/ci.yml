@@ -34,7 +34,10 @@ jobs:
       - run: pytest
         env:
           APP_ENV: test
-          DATABASE_URL: postgresql+asyncpg://agora:agora@localhost:5432/agora_test
+          # La app usa el rol NO superusuario (creado por los fixtures) para que RLS aísle.
+          DATABASE_URL: postgresql+asyncpg://agora_app:agora_app@localhost:5432/agora_test
+          # Las migraciones usan el rol dueño.
+          MIGRATION_DATABASE_URL: postgresql+asyncpg://agora:agora@localhost:5432/agora_test
           JWT_SECRET: ci-test-secret
 
   web:
