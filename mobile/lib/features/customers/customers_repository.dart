@@ -30,4 +30,15 @@ class CustomersRepository {
   }
 
   Future<List<Customer>> listCustomers() => _db.activeCustomers();
+
+  Future<void> deleteCustomer(Customer customer) async {
+    await (_db.update(_db.customers)..where((c) => c.id.equals(customer.id))).write(
+      CustomersCompanion(
+        isDeleted: const Value(true),
+        isDirty: const Value(true),
+        version: Value(customer.version + 1),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
 }

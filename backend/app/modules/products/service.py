@@ -58,6 +58,16 @@ async def list_products_with_stock(session: AsyncSession) -> list[dict[str, Any]
     ]
 
 
+async def delete_product(session: AsyncSession, product_id: UUID) -> None:
+    """Borrado lógico (tombstone) — se propaga a los demás dispositivos al sincronizar."""
+    product = await session.get(Product, product_id)
+    if product is None or product.is_deleted:
+        raise api_error(404, "PRODUCT_NOT_FOUND", "Producto no encontrado")
+    product.is_deleted = True
+    product.version += 1
+    await session.flush()
+
+
 async def adjust_stock(
     session: AsyncSession, *, tenant_id: UUID, product_id: UUID, delta: int, reason: str
 ) -> None:

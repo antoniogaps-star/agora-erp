@@ -28,3 +28,10 @@ async def create_customer(
         email=data.email,
         phone=data.phone,
     )
+
+
+@router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_customer(
+    customer_id: UUID, session: TenantSession, claims: Claims
+) -> None:
+    await service.delete_customer(session, customer_id)

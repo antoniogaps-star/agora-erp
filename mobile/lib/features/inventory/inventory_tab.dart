@@ -82,6 +82,27 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
     }
   }
 
+  Future<bool> _confirmDelete(String name) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('¿Eliminar "$name"?'),
+        content: const Text('Desaparecerá del inventario al sincronizar.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final products = ref.watch(productsProvider);
@@ -126,28 +147,45 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                 : ListView(
                     children: [
                       for (final (product, stock) in rows)
-                        ListTile(
-                          title: Text(product.name),
-                          subtitle: Text('$stock piezas'),
-                          trailing: FilledButton(
-                            onPressed: stock < 1
-                                ? null
-                                : () async {
-                                    final messenger = ScaffoldMessenger.of(context);
-                                    try {
-                                      await ref
-                                          .read(inventoryRepositoryProvider)
-                                          .sell(product);
-                                      ref.invalidate(productsProvider);
-                                    } on InsufficientStockException {
-                                      messenger.showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Stock insuficiente'),
-                                        ),
-                                      );
-                                    }
-                                  },
-                            child: const Text('Vender'),
+                        Dismissible(
+                          key: ValueKey(product.id),
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (_) => _confirmDelete(product.name),
+                          onDismissed: (_) async {
+                            await ref
+                                .read(inventoryRepositoryProvider)
+                                .deleteProduct(product);
+                            ref.invalidate(productsProvider);
+                          },
+                          background: Container(
+                            color: Colors.red.shade600,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          child: ListTile(
+                            title: Text(product.name),
+                            subtitle: Text('$stock piezas'),
+                            trailing: FilledButton(
+                              onPressed: stock < 1
+                                  ? null
+                                  : () async {
+                                      final messenger = ScaffoldMessenger.of(context);
+                                      try {
+                                        await ref
+                                            .read(inventoryRepositoryProvider)
+                                            .sell(product);
+                                        ref.invalidate(productsProvider);
+                                      } on InsufficientStockException {
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Stock insuficiente'),
+                                          ),
+                                        );
+                                      }
+                                    },
+                              child: const Text('Vender'),
+                            ),
                           ),
                         ),
                     ],

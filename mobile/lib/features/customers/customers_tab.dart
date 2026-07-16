@@ -71,6 +71,26 @@ class _CustomersTabState extends ConsumerState<CustomersTab> {
     }
   }
 
+  Future<bool> _confirmDelete(String name) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('¿Eliminar "$name"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final customers = ref.watch(customersProvider);
@@ -115,12 +135,29 @@ class _CustomersTabState extends ConsumerState<CustomersTab> {
                 : ListView(
                     children: [
                       for (final customer in rows)
-                        ListTile(
-                          leading: const Icon(Icons.person_outline),
-                          title: Text(customer.name),
-                          subtitle: customer.phone == null
-                              ? null
-                              : Text(customer.phone!),
+                        Dismissible(
+                          key: ValueKey(customer.id),
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (_) => _confirmDelete(customer.name),
+                          onDismissed: (_) async {
+                            await ref
+                                .read(customersRepositoryProvider)
+                                .deleteCustomer(customer);
+                            ref.invalidate(customersProvider);
+                          },
+                          background: Container(
+                            color: Colors.red.shade600,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          child: ListTile(
+                            leading: const Icon(Icons.person_outline),
+                            title: Text(customer.name),
+                            subtitle: customer.phone == null
+                                ? null
+                                : Text(customer.phone!),
+                          ),
                         ),
                     ],
                   ),

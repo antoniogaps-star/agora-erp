@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { createProduct, createSale, listProducts } from "./api";
+import { createProduct, createSale, deleteProduct, listProducts } from "./api";
 
 function money(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -37,6 +37,11 @@ export function InventoryPage() {
     mutationFn: (productId: string) => createSale({ product_id: productId, quantity: 1 }),
     onSuccess: refresh,
     onError: () => setError("Stock insuficiente"),
+  });
+
+  const remove = useMutation({
+    mutationFn: (productId: string) => deleteProduct(productId),
+    onSuccess: refresh,
   });
 
   return (
@@ -97,7 +102,7 @@ export function InventoryPage() {
                 <td>{p.name}</td>
                 <td>{money(p.price_cents)}</td>
                 <td>{p.stock}</td>
-                <td style={{ textAlign: "right" }}>
+                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                   <button
                     type="button"
                     style={{ width: "auto", margin: 0, padding: "0.4rem 0.8rem" }}
@@ -108,6 +113,22 @@ export function InventoryPage() {
                     }}
                   >
                     Vender 1
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Eliminar ${p.name}`}
+                    style={{
+                      width: "auto",
+                      margin: "0 0 0 0.4rem",
+                      padding: "0.4rem 0.6rem",
+                      background: "transparent",
+                      color: "#c0392b",
+                    }}
+                    onClick={() => {
+                      if (confirm(`¿Eliminar "${p.name}"?`)) remove.mutate(p.id);
+                    }}
+                  >
+                    🗑
                   </button>
                 </td>
               </tr>

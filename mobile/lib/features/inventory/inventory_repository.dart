@@ -67,6 +67,19 @@ class InventoryRepository {
     await _addMovement(tenantId, product.id, -quantity, 'sale');
   }
 
+  /// Borrado lógico (tombstone): se marca eliminado y queda pendiente de subir; al
+  /// sincronizar desaparece también en el servidor y demás dispositivos.
+  Future<void> deleteProduct(Product product) async {
+    await (_db.update(_db.products)..where((p) => p.id.equals(product.id))).write(
+      ProductsCompanion(
+        isDeleted: const Value(true),
+        isDirty: const Value(true),
+        version: Value(product.version + 1),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   Future<List<(Product, int)>> productsWithStock() async {
     final products = await _db.activeProducts();
     final stock = await _db.stockByProduct();

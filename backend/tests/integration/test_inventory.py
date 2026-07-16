@@ -52,6 +52,23 @@ async def test_crear_producto_y_vender_descuenta_stock() -> None:
         assert stock == 7
 
 
+async def test_borrar_producto_lo_quita_de_la_lista() -> None:
+    async with await _client() as client:
+        h = await _auth(client)
+        create = await client.post(
+            "/api/v1/products", headers=h,
+            json={"name": "Temporal", "price_cents": 100, "initial_stock": 5},
+        )
+        pid = create.json()["id"]
+        assert len((await client.get("/api/v1/products", headers=h)).json()) == 1
+
+        deleted = await client.delete(f"/api/v1/products/{pid}", headers=h)
+        assert deleted.status_code == 204
+
+        after = await client.get("/api/v1/products", headers=h)
+    assert after.json() == []
+
+
 async def test_venta_sin_stock_suficiente_rechazada() -> None:
     async with await _client() as client:
         h = await _auth(client)

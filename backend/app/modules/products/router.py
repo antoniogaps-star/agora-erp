@@ -36,6 +36,13 @@ async def create_product(
     }
 
 
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product(
+    product_id: UUID, session: TenantSession, claims: Claims
+) -> None:
+    await service.delete_product(session, product_id)
+
+
 @router.post("/{product_id}/adjust", status_code=status.HTTP_204_NO_CONTENT)
 async def adjust_stock(
     product_id: UUID, data: StockAdjust, session: TenantSession, claims: Claims
