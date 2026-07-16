@@ -4,12 +4,21 @@ name: APK Android
 # apuntará la app (ej. http://192.168.1.50:8000/api/v1 para pruebas en tu red,
 # o https://tu-dominio/api/v1 en producción).
 on:
+  # Manual (permite cambiar la URL de la API) o automático al tocar la app móvil.
   workflow_dispatch:
     inputs:
       api_url:
         description: "URL base de la API (termina en /api/v1)"
         required: true
-        default: "http://192.168.1.50:8000/api/v1"
+        default: "http://192.168.1.76:8000/api/v1"
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/apk.yml"
+
+env:
+  API_URL: ${{ github.event.inputs.api_url || 'http://192.168.1.76:8000/api/v1' }}
 
 permissions:
   contents: write
@@ -31,7 +40,7 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
-      - run: flutter build apk --release --dart-define=API_URL=${{ github.event.inputs.api_url }}
+      - run: flutter build apk --release --dart-define=API_URL=${{ env.API_URL }}
       - name: Renombrar APK
         run: cp build/app/outputs/flutter-apk/app-release.apk agora-erp.apk
       - name: Publicar Release con el APK
@@ -40,7 +49,7 @@ jobs:
           tag_name: apk-${{ github.run_number }}
           name: "Ágora ERP móvil (build ${{ github.run_number }})"
           body: |
-            APK de Ágora ERP apuntando a: `${{ github.event.inputs.api_url }}`
+            APK de Ágora ERP apuntando a: `${{ env.API_URL }}`
             Instalación: descarga `agora-erp.apk` en el teléfono y ábrelo
             (permite "instalar apps de origen desconocido" si Android lo pide).
           files: mobile/agora-erp.apk
