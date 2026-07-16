@@ -82,6 +82,12 @@ class Settings(BaseSettings):
                 else:
                     params.append(pair)
             value = base + (f"?{urlencode(params)}" if params else "")
+
+        # Endpoints "pooler" (PgBouncer de Neon): las sentencias preparadas de asyncpg
+        # no sobreviven al pool en modo transacción; se desactiva su caché.
+        host = value.split("@")[-1].split("/")[0]
+        if "-pooler" in host and "prepared_statement_cache_size" not in value:
+            value += ("&" if "?" in value else "?") + "prepared_statement_cache_size=0"
         return value
 
     @model_validator(mode="after")

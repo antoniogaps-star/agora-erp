@@ -57,3 +57,16 @@ def test_url_de_neon_traduce_ssl(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
     assert settings.database_url == "postgresql+asyncpg://u:p@ep-x.neon.tech/db?ssl=require"
+
+
+def test_url_pooler_desactiva_cache_de_preparadas(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Con el endpoint -pooler (PgBouncer), asyncpg necesita el caché de preparadas en 0."""
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql://u:p@ep-x-pooler.c-10.aws.neon.tech/db?sslmode=require&channel_binding=require",
+    )
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.database_url == (
+        "postgresql+asyncpg://u:p@ep-x-pooler.c-10.aws.neon.tech/db"
+        "?ssl=require&prepared_statement_cache_size=0"
+    )
