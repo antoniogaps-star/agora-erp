@@ -24,3 +24,13 @@ class ProductRead(BaseModel):
 class StockAdjust(BaseModel):
     delta: int  # positivo suma, negativo resta
     reason: str = "adjustment"
+
+
+class VoiceParseRequest(BaseModel):
+    transcript: Annotated[str, Field(min_length=1, max_length=300)]
+
+
+class VoiceParseResponse(BaseModel):
+    name: str
+    pieces: int
+    note: str | None = None

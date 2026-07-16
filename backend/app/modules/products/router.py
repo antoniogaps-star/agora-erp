@@ -5,8 +5,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from app.modules.products import service
-from app.modules.products.schemas import ProductCreate, ProductRead, StockAdjust
+from app.modules.products import service, voice_ai
+from app.modules.products.schemas import (
+    ProductCreate,
+    ProductRead,
+    StockAdjust,
+    VoiceParseRequest,
+    VoiceParseResponse,
+)
 from app.shared.deps import Claims, TenantSession
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -34,6 +40,12 @@ async def create_product(
         "price_cents": product.price_cents,
         "stock": data.initial_stock,
     }
+
+
+@router.post("/voice-parse", response_model=VoiceParseResponse)
+async def voice_parse(data: VoiceParseRequest, claims: Claims) -> dict[str, Any]:
+    """Interpreta con IA un dictado de inventario → {name, pieces, note}."""
+    return await voice_ai.parse_product(data.transcript)
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)

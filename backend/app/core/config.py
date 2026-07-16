@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     # ── CORS ─────────────────────────────────────────────────
     cors_origins: str = "http://localhost:5173"
 
+    # ── IA de dictado (Google Gemini, capa gratuita) ─────────
+    # Sin llave, el endpoint de voz responde 503 y el móvil usa reglas locales.
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

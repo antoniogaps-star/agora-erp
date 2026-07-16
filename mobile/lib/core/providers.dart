@@ -34,6 +34,7 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>(
   (ref) => InventoryRepository(
     ref.watch(databaseProvider),
     ref.watch(authRepositoryProvider).currentTenantId,
+    ref.watch(dioProvider),
   ),
 );
 

@@ -1,7 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/local/database.dart';
+import '../../shared/voice/voice_parser.dart';
 
 /// Se lanza al intentar vender más que el stock local conocido.
 class InsufficientStockException implements Exception {
@@ -19,12 +21,40 @@ class InsufficientStockException implements Exception {
 ///
 /// El `tenantId` se obtiene mediante una función (normalmente del JWT) para no acoplar
 /// el repositorio al almacenamiento seguro y poder probarlo sin plugins de plataforma.
+/// Resultado de interpretar un dictado: nombre + piezas + una nota del cálculo.
+class VoiceProduct {
+  const VoiceProduct(this.name, this.pieces, {this.note});
+  final String name;
+  final int pieces;
+  final String? note;
+}
+
 class InventoryRepository {
-  InventoryRepository(this._db, this._getTenantId);
+  InventoryRepository(this._db, this._getTenantId, this._dio);
 
   final AppDatabase _db;
   final Future<String> Function() _getTenantId;
+  final Dio _dio;
   static const _uuid = Uuid();
+
+  /// Interpreta un dictado. Intenta la IA del servidor (entiende nombres reales);
+  /// si no hay internet o IA, usa las reglas locales de respaldo.
+  Future<VoiceProduct?> interpretVoice(String transcript) async {
+    try {
+      final resp = await _dio.post(
+        '/products/voice-parse',
+        data: {'transcript': transcript},
+      );
+      final name = (resp.data['name'] as String? ?? '').trim();
+      if (name.isEmpty) return null;
+      return VoiceProduct(name, resp.data['pieces'] as int? ?? 0,
+          note: resp.data['note'] as String?);
+    } catch (_) {
+      final parsed = parseProductUtterance(transcript);
+      if (parsed == null || parsed.packSizeMissing) return null;
+      return VoiceProduct(parsed.name, parsed.pieces);
+    }
+  }
 
   Future<void> createProduct({
     required String name,

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../shared/voice/voice_capture_button.dart';
-import '../../shared/voice/voice_parser.dart';
 import 'inventory_repository.dart';
 
 /// Pestaña de inventario: producto + piezas (en sus presentaciones de llegada).
@@ -53,29 +52,21 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
 
   Future<void> _onVoiceUtterance(String transcript) async {
     final messenger = ScaffoldMessenger.of(context);
-    final parsed = parseProductUtterance(transcript);
-    if (parsed == null) {
-      messenger.showSnackBar(SnackBar(content: Text('No entendí: "$transcript"')));
-      return;
-    }
-    if (parsed.packSizeMissing) {
+    final repo = ref.read(inventoryRepositoryProvider);
+    final result = await repo.interpretVoice(transcript);
+    if (result == null) {
       messenger.showSnackBar(SnackBar(
-        content: Text(
-          'Di el tamaño: "${parsed.name} 5 ${parsed.presentation} de 24"',
-        ),
+        content: Text('No entendí: "$transcript" — di también la cantidad'),
       ));
       return;
     }
     try {
-      await ref.read(inventoryRepositoryProvider).createProduct(
-            name: parsed.name,
-            priceCents: 0,
-            initialStock: parsed.pieces,
-          );
+      await repo.createProduct(name: result.name, priceCents: 0, initialStock: result.pieces);
       ref.invalidate(productsProvider);
+      final note = result.note == null ? '' : ' (${result.note})';
       messenger.showSnackBar(SnackBar(
         duration: const Duration(seconds: 1),
-        content: Text('Agregado: ${parsed.name} · ${parsed.pieces} piezas'),
+        content: Text('Agregado: ${result.name} · ${result.pieces} piezas$note'),
       ));
     } catch (error) {
       messenger.showSnackBar(SnackBar(content: Text('No se pudo agregar: $error')));

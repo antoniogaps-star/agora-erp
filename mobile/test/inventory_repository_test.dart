@@ -1,5 +1,6 @@
 import 'package:agora_erp_mobile/data/local/database.dart';
 import 'package:agora_erp_mobile/features/inventory/inventory_repository.dart';
+import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,7 +10,7 @@ void main() {
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
-    repo = InventoryRepository(db, () async => 't1');
+    repo = InventoryRepository(db, () async => 't1', Dio());
   });
   tearDown(() => db.close());
 
