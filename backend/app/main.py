@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.db.session import engine
 from app.modules.auth.router import router as auth_router
 from app.modules.users.router import router as users_router
+from app.sync.router import router as sync_router
 
 API_PREFIX = "/api/v1"
 
@@ -70,3 +71,4 @@ async def health_db() -> dict[str, str]:
 # ── Routers de negocio ───────────────────────────────────────
 app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(users_router, prefix=API_PREFIX)
+app.include_router(sync_router, prefix=API_PREFIX)

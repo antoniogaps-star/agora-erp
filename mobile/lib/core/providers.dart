@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/local/database.dart';
+import '../data/sync/sync_service.dart';
 import '../features/auth/auth_repository.dart';
 import 'api_client.dart';
 import 'secure_store.dart';
@@ -22,6 +23,10 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   ref.onDispose(db.close);
   return db;
 });
+
+final syncServiceProvider = Provider<SyncService>(
+  (ref) => SyncService(ref.watch(databaseProvider), ref.watch(dioProvider)),
+);
 
 /// Estado de sesión: true si hay un refresh token guardado.
 class AuthController extends AsyncNotifier<bool> {

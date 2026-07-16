@@ -17,6 +17,25 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('Ágora ERP'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: 'Sincronizar',
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final sync = ref.read(syncServiceProvider);
+              try {
+                await sync.push();
+                await sync.pull();
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Sincronización completa')),
+                );
+              } catch (_) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Sin conexión: se sincronizará luego')),
+                );
+              }
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => ref.read(authControllerProvider.notifier).logout(),
           ),
