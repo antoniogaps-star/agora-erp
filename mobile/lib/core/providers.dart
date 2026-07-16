@@ -32,7 +32,7 @@ final syncServiceProvider = Provider<SyncService>(
 final inventoryRepositoryProvider = Provider<InventoryRepository>(
   (ref) => InventoryRepository(
     ref.watch(databaseProvider),
-    ref.watch(authRepositoryProvider),
+    ref.watch(authRepositoryProvider).currentTenantId,
   ),
 );
 

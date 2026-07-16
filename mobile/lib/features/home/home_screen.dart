@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../inventory/inventory_repository.dart';
 
 /// Pantalla principal: inventario offline-first. Alta de productos y ventas se guardan
 /// en la base local (funciona sin conexión) y se suben con el botón de sincronizar.
@@ -123,10 +124,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               onPressed: stock < 1
                                   ? null
                                   : () async {
-                                      await ref
-                                          .read(inventoryRepositoryProvider)
-                                          .sell(product);
-                                      ref.invalidate(productsProvider);
+                                      final messenger = ScaffoldMessenger.of(context);
+                                      try {
+                                        await ref
+                                            .read(inventoryRepositoryProvider)
+                                            .sell(product);
+                                        ref.invalidate(productsProvider);
+                                      } on InsufficientStockException {
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Stock insuficiente'),
+                                          ),
+                                        );
+                                      }
                                     },
                               child: const Text('Vender'),
                             ),
