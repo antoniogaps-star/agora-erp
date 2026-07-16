@@ -7,10 +7,10 @@ Cómo presentar, demostrar y vender Ágora ERP a sus primeros clientes.
 ## El pitch de 30 segundos
 
 > "¿Cuánto tiempo pierdes capturando tu inventario a mano? Con Ágora ERP **se lo dictas
-> al celular**: 'café, cincuenta pesos, veinte piezas' — y queda registrado. Funciona
-> **sin internet** (sincroniza solo cuando hay señal), tus vendedores lo usan en la
-> calle y tú lo ves todo desde la computadora: ventas, stock, clientes, facturas y
-> balance. Y arrancar no te cuesta nada."
+> al celular**: dices 'Corona, cinco cajas de veinticuatro' y **la inteligencia
+> artificial** lo registra solo: 120 piezas. Funciona **sin internet** (sincroniza
+> cuando hay señal), tus vendedores lo usan en la calle y tú lo ves todo desde la
+> computadora: inventario, ventas, clientes, facturas y balance. Y arrancar no te cuesta nada."
 
 ## Cliente objetivo (en orden de facilidad)
 
@@ -22,7 +22,7 @@ Cómo presentar, demostrar y vender Ágora ERP a sus primeros clientes.
 
 | Diferenciador | Frase de venta |
 |---------------|----------------|
-| 🎤 **Dictado** | "Tu inventario se captura solo: díctaselo" |
+| 🎤 **Dictado con IA** | "Le hablas y la IA entiende: 'cinco cajas de 24' = 120 piezas" |
 | ✈️ **Offline** | "Se te va el internet y tu negocio sigue vendiendo" |
 | 👁️ **Panel web** | "Ve tu negocio en vivo desde donde estés" |
 

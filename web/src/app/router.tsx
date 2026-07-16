@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 
 import { LoginPage } from "@/features/auth/LoginPage";
 import { RegisterPage } from "@/features/auth/RegisterPage";
+import { LandingPage } from "@/features/landing/LandingPage";
 import { AccountingPage } from "@/features/accounting/AccountingPage";
 import { CustomersPage } from "@/features/customers/CustomersPage";
 import { InventoryPage } from "@/features/inventory/InventoryPage";
@@ -12,6 +13,7 @@ import { AppLayout } from "./AppLayout";
 import { ProtectedRoute } from "./ProtectedRoute";
 
 export const router = createBrowserRouter([
+  { path: "/inicio", element: <LandingPage /> },
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },
   {

@@ -81,6 +81,49 @@ button:disabled {
   color: #15803d;
 }
 
+/* ── Landing de venta ────────────────────────────────── */
+.landing { max-width: 760px; margin: 0 auto; padding: 0 1rem 3rem; }
+.landing-hero { text-align: center; padding: 2.5rem 1rem 2rem; }
+.landing-brand { font-size: 2.6rem; color: #2f6df6; margin: 0; }
+.landing-slogan { font-size: 1.15rem; font-weight: 600; color: #15803d; margin: 0.25rem 0 1.25rem; }
+.landing-lead { font-size: 1.05rem; line-height: 1.6; color: #333; max-width: 520px; margin: 0 auto 1.5rem; }
+.landing-cta { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+.landing-btn {
+  display: inline-block;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  width: auto;
+}
+.landing-btn-primary { background: #2f6df6; color: #fff; }
+.landing-btn-ghost { background: transparent; color: #2f6df6; border: 1px solid #2f6df6; }
+.landing-note { font-size: 0.85rem; color: #777; margin-top: 0.9rem; }
+
+.landing-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 2.5rem;
+}
+.landing-feature {
+  background: #fff;
+  border: 0.5px solid #e6e8eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+}
+.landing-emoji { font-size: 1.8rem; }
+.landing-feature h3 { font-size: 1rem; margin: 0.5rem 0 0.35rem; }
+.landing-feature p { font-size: 0.9rem; color: #555; margin: 0; line-height: 1.5; }
+
+.landing-steps { text-align: center; margin-bottom: 2.5rem; }
+.landing-steps h2 { font-size: 1.3rem; }
+.landing-steps ol { display: inline-block; text-align: left; font-size: 1.05rem; line-height: 2; color: #333; }
+
+.landing-foot { text-align: center; }
+.landing-foot p { font-size: 0.85rem; color: #999; margin-top: 1rem; }
+
 /* Navegación en pantallas chicas: marca+usuario arriba, pestañas deslizables abajo */
 @media (max-width: 640px) {
   .topnav {
