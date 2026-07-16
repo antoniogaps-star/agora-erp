@@ -31,7 +31,7 @@ export function LoginPage() {
     <div className="center">
       <form className="card" onSubmit={onSubmit}>
         <h1>Ágora ERP · Iniciar sesión</h1>
-        <p className="slogan">Dictas. Vendes. Controlas.</p>
+        <p className="slogan">Dictas. Vendes. Ganas.</p>
 
         <label htmlFor="company_slug">Empresa</label>
         <input

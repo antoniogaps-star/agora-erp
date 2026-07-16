@@ -6,7 +6,7 @@ export function LandingPage() {
     <div className="landing">
       <header className="landing-hero">
         <h1 className="landing-brand">Ágora ERP</h1>
-        <p className="landing-slogan">Dictas. Vendes. Controlas.</p>
+        <p className="landing-slogan">Dictas. Vendes. Ganas.</p>
         <p className="landing-lead">
           El sistema para tu negocio que <strong>captura el inventario hablando</strong>.
           Funciona sin internet y lo controlas todo desde el celular o la computadora.
@@ -45,7 +45,7 @@ export function LandingPage() {
         <ol>
           <li><strong>Dictas</strong> tu inventario al celular.</li>
           <li><strong>Vendes</strong>, con o sin internet.</li>
-          <li><strong>Controlas</strong> todo desde el panel web.</li>
+          <li><strong>Ganas</strong>: controlas todo desde el panel web.</li>
         </ol>
       </section>
 
@@ -53,7 +53,7 @@ export function LandingPage() {
         <Link to="/register" className="landing-btn landing-btn-primary">
           Empieza gratis
         </Link>
-        <p>Ágora ERP · Dictas. Vendes. Controlas.</p>
+        <p>Ágora ERP · Dictas. Vendes. Ganas.</p>
       </footer>
     </div>
   );

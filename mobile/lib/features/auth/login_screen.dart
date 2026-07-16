@@ -57,7 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Dictas. Vendes. Controlas.',
+              'Dictas. Vendes. Ganas.',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

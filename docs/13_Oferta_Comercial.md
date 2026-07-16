@@ -1,6 +1,6 @@
 # 13 · Oferta Comercial
 
-> **Ágora ERP — "Dictas. Vendes. Controlas."**
+> **Ágora ERP — "Dictas. Vendes. Ganas."**
 
 Cómo presentar, demostrar y vender Ágora ERP a sus primeros clientes.
 

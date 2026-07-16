@@ -21,7 +21,7 @@ Esta carpeta es la **fuente única de verdad** del proyecto. Ningún código se 
 | 10 | [MVP](10_MVP.md) | Alcance mínimo, hitos, criterios de aceptación |
 | 11 | [Pruebas](11_Pruebas.md) | Estrategia de testing, aislamiento de tenants, CI |
 | 12 | [Despliegue](12_Despliegue.md) | Docker Compose full-stack, variables, datos demo |
-| 13 | [Oferta Comercial](13_Oferta_Comercial.md) | Pitch, demo, precios, canales — "Dictas. Vendes. Controlas." |
+| 13 | [Oferta Comercial](13_Oferta_Comercial.md) | Pitch, demo, precios, canales — "Dictas. Vendes. Ganas." |
 
 ## Decisiones arquitectónicas de fondo (resumen)
 
