@@ -4,6 +4,8 @@ Ambos requieren autenticación y usan la sesión con el tenant fijado (RLS), de 
 la sincronización queda aislada por empresa desde el diseño.
 """
 
+from uuid import UUID
+
 from fastapi import APIRouter
 
 from app.shared.deps import Claims, TenantSession
@@ -15,7 +17,7 @@ router = APIRouter(prefix="/sync", tags=["sync"])
 
 @router.post("/push", response_model=PushResponse)
 async def push(payload: PushRequest, session: TenantSession, claims: Claims) -> PushResponse:
-    return await service.push(session, payload)
+    return await service.push(session, UUID(claims["tenant_id"]), payload)
 
 
 @router.get("/pull", response_model=PullResponse)

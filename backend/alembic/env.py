@@ -12,6 +12,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Importar los modelos registra sus tablas en Base.metadata.
+import app.modules.products.models  # noqa: F401
+import app.modules.sales.models  # noqa: F401
 import app.modules.tenants.models  # noqa: F401
 import app.modules.users.models  # noqa: F401
 from alembic import context

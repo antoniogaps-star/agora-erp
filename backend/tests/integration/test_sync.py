@@ -37,19 +37,18 @@ async def test_push_entidad_no_soportada() -> None:
             json={
                 "changes": [
                     {
-                        "entity": "product",
+                        "entity": "cosa_desconocida",
                         "id": "019f6868-9a2c-75b7-8cf1-36e2316aed71",
                         "op": "upsert",
                         "version": 1,
                         "updated_at": "2026-07-15T12:00:00Z",
-                        "data": {"name": "Café"},
+                        "data": {},
                     }
                 ]
             },
         )
     assert r.status_code == 200
-    results = r.json()["results"]
-    assert results[0]["status"] == "unsupported"
+    assert r.json()["results"][0]["status"] == "unsupported"
 
 
 async def test_pull_devuelve_cursor() -> None:

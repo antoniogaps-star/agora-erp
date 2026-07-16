@@ -1,43 +1,162 @@
-"""Lógica (esqueleto) de sincronización.
+"""Motor de sincronización.
 
-Diseño para el motor real (etapa posterior):
-- `push` recibe los cambios del cliente y, por cada entidad soportada, aplica el
-  upsert/delete resolviendo conflictos según la política de esa entidad.
-- `pull` devuelve los cambios del servidor posteriores al cursor del cliente (deltas).
+Políticas por entidad (ver ADR-003 y ADR-005):
+- product: last-write-wins por `updated_at`. Si el cambio entrante es más antiguo que
+  lo que hay en el servidor, se responde `conflict` con la versión del servidor.
+- stock_movement y sale: append-only e inmutables → nunca hay conflicto; reaplicar el
+  mismo id es idempotente (no duplica). Así dos ventas concurrentes offline se acumulan.
 
-Hoy no hay entidades de negocio registradas, así que push responde "unsupported" y pull
-devuelve vacío. La sesión ya viene con el tenant fijado (RLS), por lo que cuando se
-registren handlers quedarán acotados a la empresa automáticamente.
+pull devuelve, por entidad, las filas con `updated_at` posterior al cursor del cliente
+(incluidos tombstones), y un nuevo cursor.
 """
 
 from datetime import UTC, datetime
+from typing import Any
+from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.sync.schemas import (
-    ChangeResult,
-    PullResponse,
-    PushRequest,
-    PushResponse,
-)
+from app.modules.products.models import Product, StockMovement
+from app.modules.sales.models import Sale
+from app.sync.schemas import Change, ChangeResult, PullResponse, PushRequest, PushResponse
 
-# Entidades con handler de sincronización. Vacío en el esqueleto; se irá poblando
-# (p. ej. "product", "sale", "stock_movement") con el motor real.
-SUPPORTED_ENTITIES: set[str] = set()
+SUPPORTED_ENTITIES = {"product", "stock_movement", "sale"}
 
 
-async def push(session: AsyncSession, payload: PushRequest) -> PushResponse:
+# ── Serialización modelo → data ──────────────────────────────
+def _product_data(p: Product) -> dict[str, Any]:
+    return {"name": p.name, "price_cents": p.price_cents}
+
+
+def _movement_data(m: StockMovement) -> dict[str, Any]:
+    return {"product_id": str(m.product_id), "delta": m.delta, "reason": m.reason}
+
+
+def _sale_data(s: Sale) -> dict[str, Any]:
+    return {
+        "product_id": str(s.product_id),
+        "quantity": s.quantity,
+        "unit_price_cents": s.unit_price_cents,
+        "total_cents": s.total_cents,
+    }
+
+
+# ── PUSH ─────────────────────────────────────────────────────
+async def push(session: AsyncSession, tenant_id: UUID, payload: PushRequest) -> PushResponse:
     results: list[ChangeResult] = []
     for change in payload.changes:
-        if change.entity not in SUPPORTED_ENTITIES:
+        if change.entity == "product":
+            results.append(await _push_product(session, tenant_id, change))
+        elif change.entity == "stock_movement":
+            results.append(await _push_movement(session, tenant_id, change))
+        elif change.entity == "sale":
+            results.append(await _push_sale(session, tenant_id, change))
+        else:
             results.append(
                 ChangeResult(id=change.id, entity=change.entity, status="unsupported")
             )
-            continue
-        # TODO(motor-sync): aplicar upsert/delete por entidad y resolver conflictos.
     return PushResponse(results=results)
 
 
+async def _push_product(session: AsyncSession, tenant_id: UUID, ch: Change) -> ChangeResult:
+    data = ch.data or {}
+    existing = await session.get(Product, ch.id)
+    if existing is None:
+        session.add(
+            Product(
+                id=ch.id,
+                tenant_id=tenant_id,
+                name=data.get("name", ""),
+                price_cents=data.get("price_cents", 0),
+                is_deleted=(ch.op == "delete"),
+                version=ch.version,
+                updated_at=ch.updated_at,
+            )
+        )
+        await session.flush()
+        return ChangeResult(id=ch.id, entity="product", status="applied", server_version=ch.version)
+
+    # Last-write-wins: gana el cambio con updated_at mayor o igual.
+    if ch.updated_at < existing.updated_at:
+        return ChangeResult(
+            id=ch.id, entity="product", status="conflict", server_version=existing.version
+        )
+    existing.name = data.get("name", existing.name)
+    existing.price_cents = data.get("price_cents", existing.price_cents)
+    existing.is_deleted = ch.op == "delete"
+    existing.version = ch.version
+    existing.updated_at = ch.updated_at
+    await session.flush()
+    return ChangeResult(
+        id=ch.id, entity="product", status="applied", server_version=existing.version
+    )
+
+
+async def _push_movement(session: AsyncSession, tenant_id: UUID, ch: Change) -> ChangeResult:
+    if await session.get(StockMovement, ch.id) is not None:
+        return ChangeResult(id=ch.id, entity="stock_movement", status="applied")
+    data = ch.data or {}
+    session.add(
+        StockMovement(
+            id=ch.id,
+            tenant_id=tenant_id,
+            product_id=UUID(data["product_id"]),
+            delta=data["delta"],
+            reason=data["reason"],
+            version=ch.version,
+            updated_at=ch.updated_at,
+        )
+    )
+    await session.flush()
+    return ChangeResult(id=ch.id, entity="stock_movement", status="applied")
+
+
+async def _push_sale(session: AsyncSession, tenant_id: UUID, ch: Change) -> ChangeResult:
+    if await session.get(Sale, ch.id) is not None:
+        return ChangeResult(id=ch.id, entity="sale", status="applied")
+    data = ch.data or {}
+    session.add(
+        Sale(
+            id=ch.id,
+            tenant_id=tenant_id,
+            product_id=UUID(data["product_id"]),
+            quantity=data["quantity"],
+            unit_price_cents=data["unit_price_cents"],
+            total_cents=data["total_cents"],
+            version=ch.version,
+            updated_at=ch.updated_at,
+        )
+    )
+    await session.flush()
+    return ChangeResult(id=ch.id, entity="sale", status="applied")
+
+
+# ── PULL ─────────────────────────────────────────────────────
 async def pull(session: AsyncSession, since: str | None) -> PullResponse:
-    # TODO(motor-sync): devolver los cambios (incluidos tombstones) posteriores a `since`.
-    return PullResponse(changes=[], cursor=since or datetime.now(UTC).isoformat())
+    since_dt = datetime.fromisoformat(since) if since else None
+    changes: list[Change] = []
+    changes += await _pull(session, "product", Product, _product_data, since_dt)
+    changes += await _pull(session, "stock_movement", StockMovement, _movement_data, since_dt)
+    changes += await _pull(session, "sale", Sale, _sale_data, since_dt)
+    return PullResponse(changes=changes, cursor=datetime.now(UTC).isoformat())
+
+
+async def _pull(
+    session: AsyncSession, name: str, model: Any, data_fn: Any, since_dt: datetime | None
+) -> list[Change]:
+    query = select(model)
+    if since_dt is not None:
+        query = query.where(model.updated_at > since_dt)
+    rows = (await session.execute(query)).scalars().all()
+    return [
+        Change(
+            entity=name,
+            id=row.id,
+            op="delete" if row.is_deleted else "upsert",
+            version=row.version,
+            updated_at=row.updated_at,
+            data=data_fn(row),
+        )
+        for row in rows
+    ]
