@@ -23,6 +23,7 @@ web/dist/
 *.local
 .vite/
 coverage/
+*.tsbuildinfo
 
 # ─── Flutter / Móvil ──────────────────────────────────
 mobile/.dart_tool/
