@@ -1,0 +1,15 @@
+# Normaliza saltos de línea a LF (evita problemas Windows/macOS/Linux en el monorepo)
+* text=auto eol=lf
+
+# Binarios: sin normalización
+*.png binary
+*.jpg binary
+*.webp binary
+*.pdf binary
+*.tif binary
+*.ico binary
+
+# Scripts que deben conservar su terminación
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.sh  text eol=lf
