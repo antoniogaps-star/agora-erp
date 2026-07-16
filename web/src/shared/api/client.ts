@@ -20,22 +20,36 @@ interface RetriableConfig extends InternalAxiosRequestConfig {
   _retried?: boolean;
 }
 
+// Un único refresco en vuelo compartido por todas las peticiones. Sin esto, varios
+// 401 concurrentes dispararían refrescos en paralelo; con rotación de tokens el
+// segundo usaría un refresh ya revocado y cerraría la sesión.
+let refreshPromise: Promise<string> | null = null;
+
+async function refreshAccessToken(refreshToken: string): Promise<string> {
+  const { data } = await axios.post<{ access_token: string; refresh_token: string }>(
+    `${config.apiUrl}${config.apiPrefix}/auth/refresh`,
+    { refresh_token: refreshToken },
+  );
+  useAuthStore.getState().setTokens(data.access_token, data.refresh_token);
+  return data.access_token;
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const original = error.config as RetriableConfig | undefined;
-    const { refreshToken, setTokens, clear } = useAuthStore.getState();
+    const { refreshToken, clear } = useAuthStore.getState();
 
-    // Un 401 en una petición normal: intentar refrescar el token una sola vez.
     if (error.response?.status === 401 && original && !original._retried && refreshToken) {
       original._retried = true;
       try {
-        const { data } = await axios.post<{ access_token: string; refresh_token: string }>(
-          `${config.apiUrl}${config.apiPrefix}/auth/refresh`,
-          { refresh_token: refreshToken },
-        );
-        setTokens(data.access_token, data.refresh_token);
-        original.headers.Authorization = `Bearer ${data.access_token}`;
+        if (!refreshPromise) {
+          refreshPromise = refreshAccessToken(refreshToken).finally(() => {
+            refreshPromise = null;
+          });
+        }
+        const access = await refreshPromise;
+        original.headers.Authorization = `Bearer ${access}`;
         return api(original);
       } catch {
         clear();

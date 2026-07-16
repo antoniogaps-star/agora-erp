@@ -77,3 +77,56 @@ button:disabled {
   background: transparent;
   color: #2f6df6;
 }
+
+/* ── Navegación / layout ─────────────────────────────── */
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid #e6e8eb;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.brand { font-weight: 700; }
+.navlinks { display: flex; gap: 0.5rem; flex: 1; flex-wrap: wrap; }
+.navlinks a {
+  text-decoration: none;
+  color: #555;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+}
+.navlinks a.active { color: #2f6df6; background: #eef3ff; font-weight: 600; }
+.navuser { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; color: #555; }
+.linkbtn {
+  width: auto;
+  margin: 0;
+  background: transparent;
+  color: #2f6df6;
+  padding: 0.3rem 0.6rem;
+}
+.content { max-width: 900px; margin: 1.5rem auto; padding: 0 1rem; }
+.page > h1 { font-size: 1.4rem; margin-top: 0; }
+.page h2 { font-size: 1.05rem; }
+
+/* Tarjetas de módulo (más anchas que el login) */
+.content .card { max-width: 100%; margin-bottom: 1.5rem; }
+
+/* Formularios en fila */
+.row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.row input, .row select { flex: 1; min-width: 120px; margin: 0; }
+.row button { width: auto; margin: 0; }
+
+/* Tablas */
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #f0f0f0; }
+th { font-size: 0.85rem; color: #666; }
+.empty { color: #888; padding: 1rem 0; }
+
+/* Tarjetas de estadística (reportes) */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+.stat { background: #fff; border-radius: 10px; padding: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+.stat .value { font-size: 1.6rem; font-weight: 700; }
+.stat .label { font-size: 0.8rem; color: #777; }

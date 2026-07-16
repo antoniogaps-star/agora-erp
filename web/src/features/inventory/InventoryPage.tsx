@@ -1,19 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-
-import { logout as logoutApi } from "@/features/auth/api";
-import { fetchMe } from "@/features/dashboard/api";
-import { useAuthStore } from "@/shared/auth/store";
 
 import { createProduct, createSale, listProducts } from "./api";
 
-export function InventoryPage() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const clear = useAuthStore((s) => s.clear);
+function money(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
 
-  const me = useQuery({ queryKey: ["me"], queryFn: fetchMe });
+export function InventoryPage() {
+  const queryClient = useQueryClient();
   const products = useQuery({ queryKey: ["products"], queryFn: listProducts });
 
   const [name, setName] = useState("");
@@ -44,73 +39,53 @@ export function InventoryPage() {
     onError: () => setError("Stock insuficiente"),
   });
 
-  async function logout() {
-    const refresh = useAuthStore.getState().refreshToken;
-    if (refresh) {
-      try {
-        await logoutApi(refresh); // revoca el refresh en el servidor
-      } catch {
-        // aunque falle, cerramos sesión localmente
-      }
-    }
-    clear();
-    navigate("/login");
-  }
-
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "1.5rem" }}>
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: "1.4rem" }}>Ágora ERP · Inventario</h1>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <span style={{ fontSize: "0.85rem", color: "#555" }}>{me.data?.email}</span>
-          <button type="button" className="secondary" style={{ width: "auto", margin: 0 }} onClick={logout}>
-            Salir
-          </button>
-        </div>
-      </header>
+    <div className="page">
+      <h1>Inventario</h1>
 
-      <section className="card" style={{ maxWidth: "100%", marginBottom: "1.5rem" }}>
-        <h1 style={{ fontSize: "1.1rem" }}>Nuevo producto</h1>
+      <section className="card">
+        <h2>Nuevo producto</h2>
         <form
+          className="row"
           onSubmit={(e) => {
             e.preventDefault();
             addProduct.mutate();
           }}
-          style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: "0.75rem", alignItems: "end" }}
         >
-          <div>
-            <label>Nombre</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div>
-            <label>Precio</label>
-            <input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required />
-          </div>
-          <div>
-            <label>Stock inicial</label>
-            <input type="number" min="0" value={stock} onChange={(e) => setStock(e.target.value)} />
-          </div>
-          <button type="submit" style={{ width: "auto", margin: 0 }} disabled={addProduct.isPending}>
+          <input
+            placeholder="Nombre"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="Precio"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            required
+          />
+          <input
+            type="number"
+            min="0"
+            placeholder="Stock inicial"
+            value={stock}
+            onChange={(e) => setStock(e.target.value)}
+          />
+          <button type="submit" disabled={addProduct.isPending}>
             Agregar
           </button>
         </form>
       </section>
 
-      <section className="card" style={{ maxWidth: "100%" }}>
-        <h1 style={{ fontSize: "1.1rem" }}>Productos</h1>
+      <section className="card">
         {error && <p className="error">{error}</p>}
-        {products.isLoading && <p>Cargando…</p>}
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table>
           <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #eee" }}>
-              <th style={{ padding: "0.5rem 0" }}>Producto</th>
+            <tr>
+              <th>Producto</th>
               <th>Precio</th>
               <th>Stock</th>
               <th></th>
@@ -118,9 +93,9 @@ export function InventoryPage() {
           </thead>
           <tbody>
             {products.data?.map((p) => (
-              <tr key={p.id} style={{ borderBottom: "1px solid #f3f3f3" }}>
-                <td style={{ padding: "0.5rem 0" }}>{p.name}</td>
-                <td>${(p.price_cents / 100).toFixed(2)}</td>
+              <tr key={p.id}>
+                <td>{p.name}</td>
+                <td>{money(p.price_cents)}</td>
                 <td>{p.stock}</td>
                 <td style={{ textAlign: "right" }}>
                   <button
@@ -139,7 +114,7 @@ export function InventoryPage() {
             ))}
             {products.data?.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ padding: "1rem 0", color: "#888" }}>
+                <td colSpan={4} className="empty">
                   Sin productos todavía.
                 </td>
               </tr>
