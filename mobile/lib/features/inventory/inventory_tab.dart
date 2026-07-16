@@ -26,17 +26,31 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
   }
 
   Future<void> _addProduct() async {
+    final messenger = ScaffoldMessenger.of(context);
     final name = _name.text.trim();
-    if (name.isEmpty) return;
-    await ref.read(inventoryRepositoryProvider).createProduct(
-          name: name,
-          priceCents: ((double.tryParse(_price.text) ?? 0) * 100).round(),
-          initialStock: int.tryParse(_stock.text) ?? 0,
-        );
-    _name.clear();
-    _price.clear();
-    _stock.clear();
-    ref.invalidate(productsProvider);
+    if (name.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Escribe el nombre del producto')),
+      );
+      return;
+    }
+    // El precio dictado puede traer coma decimal o texto ("50 pesos"): se limpia.
+    final priceText = _price.text.replaceAll(',', '.').replaceAll(RegExp(r'[^0-9.]'), '');
+    final stockText = _stock.text.replaceAll(RegExp(r'[^0-9]'), '');
+    try {
+      await ref.read(inventoryRepositoryProvider).createProduct(
+            name: name,
+            priceCents: ((double.tryParse(priceText) ?? 0) * 100).round(),
+            initialStock: int.tryParse(stockText) ?? 0,
+          );
+      _name.clear();
+      _price.clear();
+      _stock.clear();
+      ref.invalidate(productsProvider);
+      messenger.showSnackBar(SnackBar(content: Text('Producto "$name" agregado')));
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text('No se pudo agregar: $error')));
+    }
   }
 
   @override
@@ -52,6 +66,8 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                 flex: 3,
                 child: TextField(
                   controller: _name,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _addProduct(),
                   decoration: const InputDecoration(labelText: 'Producto'),
                 ),
               ),

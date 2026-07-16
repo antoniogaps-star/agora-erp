@@ -23,16 +23,27 @@ class _CustomersTabState extends ConsumerState<CustomersTab> {
   }
 
   Future<void> _addCustomer() async {
+    final messenger = ScaffoldMessenger.of(context);
     final name = _name.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Escribe el nombre del cliente')),
+      );
+      return;
+    }
     final phone = _phone.text.trim();
-    await ref.read(customersRepositoryProvider).createCustomer(
-          name: name,
-          phone: phone.isEmpty ? null : phone,
-        );
-    _name.clear();
-    _phone.clear();
-    ref.invalidate(customersProvider);
+    try {
+      await ref.read(customersRepositoryProvider).createCustomer(
+            name: name,
+            phone: phone.isEmpty ? null : phone,
+          );
+      _name.clear();
+      _phone.clear();
+      ref.invalidate(customersProvider);
+      messenger.showSnackBar(SnackBar(content: Text('Cliente "$name" agregado')));
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text('No se pudo agregar: $error')));
+    }
   }
 
   @override
@@ -48,6 +59,8 @@ class _CustomersTabState extends ConsumerState<CustomersTab> {
                 flex: 2,
                 child: TextField(
                   controller: _name,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _addCustomer(),
                   decoration: const InputDecoration(labelText: 'Nombre'),
                 ),
               ),
