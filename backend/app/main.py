@@ -1,23 +1,28 @@
 """Punto de entrada de la API de Ágora ERP.
 
-Hito 2: la app arranca, expone /health y verifica la conexión a la base de datos.
-Los routers de negocio (auth, tenants, users, sync) se añaden en hitos posteriores.
+Registra los routers de la etapa base (health, auth, users) bajo /api/v1 y da formato
+uniforme a los errores (ver docs/05_API.md).
 """
 
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import settings
 from app.db.session import engine
+from app.modules.auth.router import router as auth_router
+from app.modules.users.router import router as users_router
+
+API_PREFIX = "/api/v1"
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> Any:
-    # Espacio para inicialización/cierre de recursos en hitos futuros.
     yield
     await engine.dispose()
 
@@ -38,15 +43,30 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+    """Envuelve toda HTTPException en { "error": { code, message } }."""
+    detail = exc.detail
+    if isinstance(detail, dict) and "code" in detail:
+        body = {"error": detail}
+    else:
+        body = {"error": {"code": "ERROR", "message": str(detail)}}
+    return JSONResponse(status_code=exc.status_code, content=body)
+
+
+# ── Health ───────────────────────────────────────────────────
 @app.get("/health", tags=["health"])
 async def health() -> dict[str, str]:
-    """Liveness: la app responde."""
     return {"status": "ok", "env": settings.app_env}
 
 
 @app.get("/health/db", tags=["health"])
 async def health_db() -> dict[str, str]:
-    """Readiness: la base de datos responde."""
     async with engine.connect() as conn:
         await conn.execute(text("SELECT 1"))
     return {"status": "ok", "database": "reachable"}
+
+
+# ── Routers de negocio ───────────────────────────────────────
+app.include_router(auth_router, prefix=API_PREFIX)
+app.include_router(users_router, prefix=API_PREFIX)

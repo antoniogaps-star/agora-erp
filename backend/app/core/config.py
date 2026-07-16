@@ -7,7 +7,6 @@ módulos: importar `settings` de aquí. Ver docs/06_Backend.md y docs/09_Segurid
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["local", "test", "staging", "production"]
