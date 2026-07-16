@@ -7,6 +7,7 @@ La seguridad es requisito de diseño. Este documento es de lectura obligatoria a
 - **Row-Level Security de PostgreSQL** impone que cada tenant solo vea sus filas (ver [04_Base_Datos](04_Base_Datos.md)).
 - El `tenant_id` se deriva **exclusivamente del JWT verificado**, nunca de entrada del cliente.
 - **Defensa en profundidad:** RLS (base de datos) + validación en la capa de servicio.
+- **Rol de aplicación NO superusuario:** PostgreSQL **ignora RLS para superusuarios y roles con BYPASSRLS**. Por eso la app se conecta con un rol restringido (`agora_app`), mientras las migraciones usan el rol dueño (`agora`). Además las tablas de tenant usan `FORCE ROW LEVEL SECURITY` para someter también al dueño. Sin esto, el aislamiento sería ilusorio.
 - **Guardián:** tests automatizados de aislamiento que fallan si un tenant accede a datos de otro (ver [11_Pruebas](11_Pruebas.md)).
 
 ## 2. Autenticación

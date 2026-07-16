@@ -25,7 +25,11 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # ── Base de datos ────────────────────────────────────────
-    database_url: str = "postgresql+asyncpg://agora:agora@localhost:5432/agora"
+    # La APP se conecta con un rol NO superusuario para que RLS aplique de verdad.
+    database_url: str = "postgresql+asyncpg://agora_app:agora_app@localhost:5432/agora"
+    # Las MIGRACIONES se ejecutan con el rol dueño (crea/altera tablas). Si no se
+    # define, se usa database_url.
+    migration_database_url: str | None = None
 
     # ── Seguridad / JWT ──────────────────────────────────────
     jwt_secret: str = "CHANGE_ME"
