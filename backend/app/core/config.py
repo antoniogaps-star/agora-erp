@@ -51,8 +51,11 @@ class Settings(BaseSettings):
 
     # ── IA de dictado (Google Gemini, capa gratuita) ─────────
     # Sin llave, el endpoint de voz responde 503 y el móvil usa reglas locales.
+    # Groq (preferido: cupo gratuito amplio y estable)
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
+    # Gemini (alternativa)
     gemini_api_key: str = ""
-    # flash-lite: más llamadas/min en el plan gratis (mejor para captura de inventario).
     gemini_model: str = "gemini-2.0-flash-lite"
 
     @property

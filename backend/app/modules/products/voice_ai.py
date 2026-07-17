@@ -1,8 +1,10 @@
-"""Interpretación de dictado de inventario con IA (Google Gemini, capa gratuita).
+"""Interpretación de dictado de inventario con IA (capa gratuita).
 
 Convierte habla libre en español a {name, pieces}. Entiende nombres reales con
 palabras raras ("Corona media", "Modelo lata") y presentaciones (caja, six, docena).
-Si no hay llave configurada, lanza 503 y el móvil recurre a sus reglas locales.
+
+Proveedor: usa Groq si hay GROQ_API_KEY (cupo gratuito amplio); si no, Google Gemini;
+si no hay ninguna llave, lanza 503 y el móvil recurre a sus reglas locales.
 """
 
 import json
@@ -36,9 +38,7 @@ Ejemplos:
 Responde únicamente el JSON, sin texto adicional."""
 
 
-def _extract(data: dict[str, Any]) -> dict[str, Any]:
-    text = data["candidates"][0]["content"]["parts"][0]["text"]
-    parsed = json.loads(text)
+def _shape(parsed: dict[str, Any]) -> dict[str, Any]:
     return {
         "name": str(parsed.get("name", "")).strip(),
         "pieces": int(parsed.get("pieces", 0) or 0),
@@ -46,10 +46,31 @@ def _extract(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def parse_product(transcript: str) -> dict[str, Any]:
-    if not settings.gemini_api_key:
-        raise api_error(503, "AI_NOT_CONFIGURED", "IA de dictado no configurada")
+async def _call_groq(transcript: str) -> dict[str, Any]:
+    body = {
+        "model": settings.groq_model,
+        "messages": [
+            {"role": "system", "content": _SYSTEM},
+            {"role": "user", "content": transcript},
+        ],
+        "response_format": {"type": "json_object"},
+        "temperature": 0,
+    }
+    headers = {"Authorization": f"Bearer {settings.groq_api_key}"}
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions", json=body, headers=headers
+            )
+    except httpx.HTTPError as exc:
+        raise api_error(502, "AI_UNREACHABLE", "No se pudo contactar la IA") from exc
+    if resp.status_code != 200:
+        raise api_error(502, "AI_ERROR", f"Groq {resp.status_code}: {resp.text[:250]}")
+    text = resp.json()["choices"][0]["message"]["content"]
+    return _shape(json.loads(text))
 
+
+async def _call_gemini(transcript: str) -> dict[str, Any]:
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
         f"{settings.gemini_model}:generateContent"
@@ -64,13 +85,19 @@ async def parse_product(transcript: str) -> dict[str, Any]:
             resp = await client.post(url, params={"key": settings.gemini_api_key}, json=body)
     except httpx.HTTPError as exc:
         raise api_error(502, "AI_UNREACHABLE", "No se pudo contactar la IA") from exc
-
     if resp.status_code != 200:
-        # Se incluye el detalle de Google para poder diagnosticar (llave, modelo, cuota).
         detail = resp.text[:250].replace("\n", " ")
         raise api_error(502, "AI_ERROR", f"Gemini {resp.status_code}: {detail}")
+    text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+    return _shape(json.loads(text))
 
+
+async def parse_product(transcript: str) -> dict[str, Any]:
     try:
-        return _extract(resp.json())
+        if settings.groq_api_key:
+            return await _call_groq(transcript)
+        if settings.gemini_api_key:
+            return await _call_gemini(transcript)
     except (KeyError, IndexError, ValueError) as exc:
         raise api_error(502, "AI_BAD_RESPONSE", "Respuesta de IA no interpretable") from exc
+    raise api_error(503, "AI_NOT_CONFIGURED", "IA de dictado no configurada")
