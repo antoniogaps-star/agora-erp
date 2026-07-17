@@ -52,7 +52,8 @@ class Settings(BaseSettings):
     # ── IA de dictado (Google Gemini, capa gratuita) ─────────
     # Sin llave, el endpoint de voz responde 503 y el móvil usa reglas locales.
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    # flash-lite: más llamadas/min en el plan gratis (mejor para captura de inventario).
+    gemini_model: str = "gemini-2.0-flash-lite"
 
     @property
     def cors_origins_list(self) -> list[str]:
