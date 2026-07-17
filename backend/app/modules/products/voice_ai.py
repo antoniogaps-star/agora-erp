@@ -66,7 +66,9 @@ async def parse_product(transcript: str) -> dict[str, Any]:
         raise api_error(502, "AI_UNREACHABLE", "No se pudo contactar la IA") from exc
 
     if resp.status_code != 200:
-        raise api_error(502, "AI_ERROR", "El servicio de IA devolvió un error")
+        # Se incluye el detalle de Google para poder diagnosticar (llave, modelo, cuota).
+        detail = resp.text[:250].replace("\n", " ")
+        raise api_error(502, "AI_ERROR", f"Gemini {resp.status_code}: {detail}")
 
     try:
         return _extract(resp.json())
