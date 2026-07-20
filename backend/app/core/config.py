@@ -49,8 +49,9 @@ class Settings(BaseSettings):
     # ── CORS ─────────────────────────────────────────────────
     cors_origins: str = "http://localhost:5173"
 
-    # ── IA de dictado (Google Gemini, capa gratuita) ─────────
-    # Sin llave, el endpoint de voz responde 503 y el móvil usa reglas locales.
+    # ── IA de dictado (capa gratuita) ────────────────────────
+    # Se intentan en cascada: primero Groq, luego Gemini como respaldo. Sin ninguna
+    # llave, el endpoint de voz responde 503 y el móvil usa reglas locales.
     # Groq (preferido: cupo gratuito amplio y estable)
     # Secreto para generar claves de activación (endpoint admin). Vacío = deshabilitado.
     license_admin_secret: str = ""
