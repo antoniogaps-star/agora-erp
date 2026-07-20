@@ -7,7 +7,12 @@ import '../features/auth/auth_repository.dart';
 import '../features/customers/customers_repository.dart';
 import '../features/inventory/inventory_repository.dart';
 import 'api_client.dart';
+import 'demo.dart';
 import 'secure_store.dart';
+
+/// Tipo de sesión activa: ninguna (mostrar login), real (empresa de verdad) o
+/// demostración (datos fijos locales, sin servidor).
+enum SessionKind { none, real, demo }
 
 /// Inyección de dependencias con Riverpod.
 final secureStoreProvider = Provider<SecureStore>((_) => const SecureStore());
@@ -28,6 +33,10 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 
 final syncServiceProvider = Provider<SyncService>(
   (ref) => SyncService(ref.watch(databaseProvider), ref.watch(dioProvider)),
+);
+
+final demoSeederProvider = Provider<DemoSeeder>(
+  (ref) => DemoSeeder(ref.watch(databaseProvider)),
 );
 
 final inventoryRepositoryProvider = Provider<InventoryRepository>(
@@ -55,12 +64,15 @@ final customersProvider = FutureProvider.autoDispose<List<Customer>>(
   (ref) => ref.watch(customersRepositoryProvider).listCustomers(),
 );
 
-/// Estado de sesión: true si hay un refresh token guardado.
-class AuthController extends AsyncNotifier<bool> {
+/// Estado de sesión: real (token guardado), demo (datos fijos locales) o ninguna.
+class AuthController extends AsyncNotifier<SessionKind> {
   AuthRepository get _repo => ref.read(authRepositoryProvider);
 
   @override
-  Future<bool> build() => _repo.hasSession();
+  Future<SessionKind> build() async {
+    if (await _repo.isDemo) return SessionKind.demo;
+    return (await _repo.hasSession()) ? SessionKind.real : SessionKind.none;
+  }
 
   Future<void> login({
     required String companySlug,
@@ -70,7 +82,7 @@ class AuthController extends AsyncNotifier<bool> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await _repo.login(companySlug: companySlug, email: email, password: password);
-      return true;
+      return SessionKind.real;
     });
   }
 
@@ -88,15 +100,37 @@ class AuthController extends AsyncNotifier<bool> {
         email: email,
         password: password,
       );
-      return true;
+      return SessionKind.real;
     });
   }
 
+  /// Entra al modo demostración: marca la sesión local y carga datos fijos frescos.
+  Future<void> enterDemo() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(secureStoreProvider).setDemo(true);
+      await ref.read(demoSeederProvider).reset();
+      return SessionKind.demo;
+    });
+  }
+
+  /// Reinicia los datos de demo a su estado original (para volver a enseñarla limpia).
+  Future<void> resetDemo() async {
+    await ref.read(demoSeederProvider).reset();
+    ref.invalidate(productsProvider);
+    ref.invalidate(customersProvider);
+  }
+
   Future<void> logout() async {
-    await _repo.logout();
-    state = const AsyncData(false);
+    if (state.valueOrNull == SessionKind.demo) {
+      await ref.read(demoSeederProvider).wipe();
+      await ref.read(secureStoreProvider).setDemo(false);
+    } else {
+      await _repo.logout();
+    }
+    state = const AsyncData(SessionKind.none);
   }
 }
 
 final authControllerProvider =
-    AsyncNotifierProvider<AuthController, bool>(AuthController.new);
+    AsyncNotifierProvider<AuthController, SessionKind>(AuthController.new);

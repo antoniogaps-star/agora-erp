@@ -32,7 +32,8 @@ class _AuthGate extends ConsumerWidget {
     return auth.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (_, __) => const LoginScreen(),
-      data: (isAuthenticated) => isAuthenticated ? const HomeScreen() : const LoginScreen(),
+      data: (session) =>
+          session == SessionKind.none ? const LoginScreen() : const HomeScreen(),
     );
   }
 }

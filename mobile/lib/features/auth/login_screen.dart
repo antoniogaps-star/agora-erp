@@ -84,6 +84,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               onPressed: isLoading ? null : _submit,
               child: Text(isLoading ? 'Entrando…' : 'Entrar'),
             ),
+            const SizedBox(height: 24),
+            const Row(
+              children: [
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('o', style: TextStyle(color: Colors.grey)),
+                ),
+                Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: isLoading
+                  ? null
+                  : () => ref.read(authControllerProvider.notifier).enterDemo(),
+              icon: const Icon(Icons.play_circle_outline),
+              label: const Text('Ver demostración'),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Prueba gratis · 1 semana',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF15803D),
+              ),
+            ),
           ],
         ),
       ),

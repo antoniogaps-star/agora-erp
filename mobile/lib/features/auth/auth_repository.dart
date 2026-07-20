@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../core/demo.dart';
 import '../../core/jwt.dart';
 import '../../core/secure_store.dart';
 
@@ -57,9 +58,13 @@ class AuthRepository {
 
   Future<bool> hasSession() async => (await _store.refreshToken) != null;
 
+  Future<bool> get isDemo => _store.isDemo;
+
   /// Tenant del usuario, leído del JWT guardado. Se usa para etiquetar los
-  /// registros locales; el servidor lo reimpone al sincronizar.
+  /// registros locales; el servidor lo reimpone al sincronizar. En modo demo
+  /// se usa un tenant fijo local (los datos nunca salen del dispositivo).
   Future<String> currentTenantId() async {
+    if (await _store.isDemo) return kDemoTenantId;
     final token = await _store.accessToken ?? await _store.refreshToken;
     if (token == null) return '';
     return decodeJwtPayload(token)?['tenant_id'] as String? ?? '';
