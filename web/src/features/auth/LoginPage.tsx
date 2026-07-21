@@ -12,6 +12,7 @@ export function LoginPage() {
   const [form, setForm] = useState({ company_slug: "", email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -56,11 +57,19 @@ export function LoginPage() {
         <label htmlFor="password">Contraseña</label>
         <input
           id="password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           required
         />
+        <label style={{ fontWeight: "normal", fontSize: "0.9em", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={showPassword}
+            onChange={(e) => setShowPassword(e.target.checked)}
+          />{" "}
+          Ver contraseña
+        </label>
 
         {error && <p className="error">{error}</p>}
 
