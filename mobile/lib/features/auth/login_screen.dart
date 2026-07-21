@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../core/slug.dart';
+import '../billing/pricing_screen.dart';
 import 'auth_errors.dart';
 import 'register_screen.dart';
 
@@ -157,6 +158,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF15803D),
               ),
+            ),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const PricingScreen()),
+              ),
+              icon: const Icon(Icons.sell_outlined),
+              label: const Text('Ver planes y precios'),
             ),
           ],
         ),
