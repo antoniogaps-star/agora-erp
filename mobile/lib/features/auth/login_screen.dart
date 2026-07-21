@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../core/slug.dart';
+import 'auth_errors.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _password = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Prellena empresa y correo de la última vez, para que no haya que reteclearlos
+    // (evita el error más común: que no coincidan por un typo).
+    _prefill();
+  }
+
+  Future<void> _prefill() async {
+    final store = ref.read(secureStoreProvider);
+    final company = await store.lastCompany;
+    final email = await store.lastEmail;
+    if (!mounted) return;
+    setState(() {
+      if (company != null && _company.text.isEmpty) _company.text = company;
+      if (email != null && _email.text.isEmpty) _email.text = email;
+    });
+  }
+
+  @override
   void dispose() {
     _company.dispose();
     _email.dispose();
@@ -26,23 +46,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _submit() async {
+    final store = ref.read(secureStoreProvider);
+    final company = _company.text.trim();
+    final email = _email.text.trim().toLowerCase();
     // El usuario escribe el NOMBRE de su empresa; la app lo traduce al
     // identificador interno igual que en el registro (ver slugify).
     await ref.read(authControllerProvider.notifier).login(
-          companySlug: slugify(_company.text),
-          email: _email.text.trim().toLowerCase(),
+          companySlug: slugify(company),
+          email: email,
           password: _password.text,
         );
     final state = ref.read(authControllerProvider);
-    if (state.hasError && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No se pudo entrar. Revisa tu identificador, correo y contraseña. '
-            'Si es la primera vez, primero crea tu cuenta.',
-          ),
-        ),
-      );
+    if (state.hasError) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authErrorMessage(state.error, isRegister: false))),
+        );
+      }
+    } else {
+      await store.saveLastLogin(company, email);
     }
   }
 
