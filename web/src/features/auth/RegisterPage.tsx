@@ -16,6 +16,7 @@ export function RegisterPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -34,7 +35,7 @@ export function RegisterPage() {
 
   return (
     <div className="center">
-      <form className="card" onSubmit={onSubmit}>
+      <form className="card" onSubmit={onSubmit} autoComplete="off">
         <h1>Ágora ERP · Crear empresa</h1>
         <p className="slogan">Dictas. Vendes. Ganas.</p>
 
@@ -43,6 +44,7 @@ export function RegisterPage() {
           id="company_name"
           value={form.company_name}
           onChange={(e) => setForm({ ...form, company_name: e.target.value })}
+          autoComplete="off"
           required
         />
 
@@ -52,18 +54,28 @@ export function RegisterPage() {
           type="email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
+          autoComplete="off"
           required
         />
 
         <label htmlFor="password">Contraseña</label>
         <input
           id="password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
+          autoComplete="new-password"
           minLength={8}
           required
         />
+        <label style={{ fontWeight: "normal", fontSize: "0.9em", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={showPassword}
+            onChange={(e) => setShowPassword(e.target.checked)}
+          />{" "}
+          Ver contraseña
+        </label>
 
         {error && <p className="error">{error}</p>}
 
