@@ -19,6 +19,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _companyName = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  bool _showPassword = false;
 
   @override
   void dispose() {
@@ -107,10 +108,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _password,
-              obscureText: true,
-              decoration: const InputDecoration(
+              obscureText: !_showPassword,
+              decoration: InputDecoration(
                 labelText: 'Contraseña',
-                helperText: 'Mínimo 8 caracteres.',
+                helperText: 'Mínimo 8 caracteres. Toca el ojo para verla y anótala.',
+                suffixIcon: IconButton(
+                  icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
+                  tooltip: _showPassword ? 'Ocultar' : 'Ver contraseña',
+                  onPressed: () => setState(() => _showPassword = !_showPassword),
+                ),
               ),
             ),
             const SizedBox(height: 24),
