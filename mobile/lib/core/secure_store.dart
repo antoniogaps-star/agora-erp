@@ -13,6 +13,8 @@ class SecureStore {
   static const _refreshKey = 'refresh_token';
   static const _dbKey = 'db_encryption_key';
   static const _demoKey = 'demo_mode';
+  static const _lastCompanyKey = 'last_company';
+  static const _lastEmailKey = 'last_email';
 
   Future<void> saveTokens(String access, String refresh) async {
     await _storage.write(key: _accessKey, value: access);
@@ -33,6 +35,17 @@ class SecureStore {
   }
 
   Future<bool> get isDemo async => (await _storage.read(key: _demoKey)) == 'true';
+
+  /// Recuerda la empresa y el correo con los que se entró, para prellenarlos la
+  /// próxima vez y evitar que un error al teclear impida iniciar sesión. NO se borra
+  /// en logout (por eso vive fuera de [clear]).
+  Future<void> saveLastLogin(String company, String email) async {
+    await _storage.write(key: _lastCompanyKey, value: company);
+    await _storage.write(key: _lastEmailKey, value: email);
+  }
+
+  Future<String?> get lastCompany => _storage.read(key: _lastCompanyKey);
+  Future<String?> get lastEmail => _storage.read(key: _lastEmailKey);
 
   Future<void> clear() async {
     await _storage.delete(key: _accessKey);

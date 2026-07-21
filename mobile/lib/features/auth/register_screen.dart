@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../core/slug.dart';
+import 'auth_errors.dart';
 
 /// Registro de una empresa nueva + su usuario dueño. El usuario solo escribe el
 /// nombre del negocio, su correo y una contraseña; el identificador interno se
@@ -47,6 +48,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
     if (password.length < 8) return _snack('La contraseña debe tener al menos 8 caracteres');
 
+    final store = ref.read(secureStoreProvider);
     await ref.read(authControllerProvider.notifier).register(
           companyName: name,
           companySlug: companySlug,
@@ -55,14 +57,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         );
 
     final state = ref.read(authControllerProvider);
-    if (!mounted) return;
     if (state.hasError) {
-      _snack('No se pudo crear la cuenta. Puede que ese nombre de empresa o ese correo ya '
-          'existan, o que el servidor tarde en despertar. Intenta de nuevo.');
+      if (mounted) _snack(authErrorMessage(state.error, isRegister: true));
     } else {
+      // Guarda los datos para prellenar el próximo login (así no habrá typos).
+      await store.saveLastLogin(name, email);
       // Registro exitoso: la sesión ya es real; cerramos esta pantalla y el
       // AuthGate mostrará la app por debajo.
-      Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop();
     }
   }
 
