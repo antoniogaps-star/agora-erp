@@ -74,16 +74,16 @@ class AuthController extends AsyncNotifier<SessionKind> {
     return (await _repo.hasSession()) ? SessionKind.real : SessionKind.none;
   }
 
+  /// Inicia sesión. NO usa AsyncLoading para no reemplazar la pantalla de login
+  /// mientras se procesa (si se reemplazara, el error nunca se alcanzaría a mostrar).
+  /// Lanza la excepción si falla; la pantalla la atrapa y muestra el mensaje.
   Future<void> login({
     required String companySlug,
     required String email,
     required String password,
   }) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await _repo.login(companySlug: companySlug, email: email, password: password);
-      return SessionKind.real;
-    });
+    await _repo.login(companySlug: companySlug, email: email, password: password);
+    state = const AsyncData(SessionKind.real);
   }
 
   Future<void> register({

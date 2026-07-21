@@ -18,12 +18,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _company = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  bool _loading = false;
+  bool _showPassword = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    // Prellena empresa y correo de la última vez, para que no haya que reteclearlos
-    // (evita el error más común: que no coincidan por un typo).
+    // Prellena empresa y correo de la última vez, para que no haya que reteclearlos.
     _prefill();
   }
 
@@ -47,38 +49,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    final store = ref.read(secureStoreProvider);
     final company = _company.text.trim();
     final email = _email.text.trim().toLowerCase();
-    // El usuario escribe el NOMBRE de su empresa; la app lo traduce al
-    // identificador interno igual que en el registro (ver slugify).
-    await ref.read(authControllerProvider.notifier).login(
-          companySlug: slugify(company),
-          email: email,
-          password: _password.text,
-        );
-    final state = ref.read(authControllerProvider);
-    if (state.hasError) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(authErrorMessage(state.error, isRegister: false))),
-        );
-      }
-    } else {
+    if (company.isEmpty || email.isEmpty || _password.text.isEmpty) {
+      setState(() => _error = 'Llena empresa, correo y contraseña.');
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final store = ref.read(secureStoreProvider);
+    try {
+      // El usuario escribe el NOMBRE de su empresa; la app lo traduce al
+      // identificador interno igual que en el registro (ver slugify).
+      await ref.read(authControllerProvider.notifier).login(
+            companySlug: slugify(company),
+            email: email,
+            password: _password.text,
+          );
       await store.saveLastLogin(company, email);
+      // Éxito: el AuthGate cambia a la app; esta pantalla se cierra sola.
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = authErrorMessage(error, isRegister: false));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(authControllerProvider).isLoading;
     return Scaffold(
       appBar: AppBar(title: const Text('Ágora ERP')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const SizedBox(height: 24),
             const Text(
               'Ágora ERP',
               style: TextStyle(
@@ -113,17 +122,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             TextField(
               controller: _password,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Contraseña'),
+              obscureText: !_showPassword,
+              decoration: InputDecoration(
+                labelText: 'Contraseña',
+                suffixIcon: IconButton(
+                  icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
+                  tooltip: _showPassword ? 'Ocultar' : 'Ver contraseña',
+                  onPressed: () => setState(() => _showPassword = !_showPassword),
+                ),
+              ),
             ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEE2E2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: Color(0xFFB91C1C)),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: isLoading ? null : _submit,
-              child: Text(isLoading ? 'Entrando…' : 'Entrar'),
+              onPressed: _loading ? null : _submit,
+              child: Text(_loading ? 'Entrando…' : 'Entrar'),
             ),
             const SizedBox(height: 8),
             TextButton(
-              onPressed: isLoading
+              onPressed: _loading
                   ? null
                   : () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
@@ -145,7 +176,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: isLoading
+              onPressed: _loading
                   ? null
                   : () => ref.read(authControllerProvider.notifier).enterDemo(),
               icon: const Icon(Icons.play_circle_outline),
