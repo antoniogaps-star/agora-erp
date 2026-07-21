@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "@/shared/auth/store";
+import { slugify } from "@/lib/slug";
 
 import { register } from "./api";
 
@@ -10,7 +11,6 @@ export function RegisterPage() {
   const setTokens = useAuthStore((s) => s.setTokens);
   const [form, setForm] = useState({
     company_name: "",
-    company_slug: "",
     email: "",
     password: "",
   });
@@ -22,11 +22,11 @@ export function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      const tokens = await register(form);
+      const tokens = await register({ ...form, company_slug: slugify(form.company_name) });
       setTokens(tokens.access_token, tokens.refresh_token);
       navigate("/");
     } catch {
-      setError("No se pudo crear la empresa (¿identificador ya en uso?)");
+      setError("No se pudo crear la empresa (¿ese nombre o correo ya existen?)");
     } finally {
       setLoading(false);
     }
@@ -43,15 +43,6 @@ export function RegisterPage() {
           id="company_name"
           value={form.company_name}
           onChange={(e) => setForm({ ...form, company_name: e.target.value })}
-          required
-        />
-
-        <label htmlFor="company_slug">Identificador (slug)</label>
-        <input
-          id="company_slug"
-          value={form.company_slug}
-          onChange={(e) => setForm({ ...form, company_slug: e.target.value })}
-          placeholder="mi-empresa"
           required
         />
 

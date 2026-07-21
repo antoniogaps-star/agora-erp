@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "@/shared/auth/store";
+import { slugify } from "@/lib/slug";
 
 import { login } from "./api";
 
@@ -17,11 +18,12 @@ export function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const tokens = await login(form);
+      // El usuario escribe el NOMBRE; se traduce al identificador igual que en el móvil.
+      const tokens = await login({ ...form, company_slug: slugify(form.company_slug) });
       setTokens(tokens.access_token, tokens.refresh_token);
       navigate("/");
     } catch {
-      setError("Credenciales inválidas");
+      setError("No se pudo entrar. Revisa el nombre de tu empresa, correo y contraseña.");
     } finally {
       setLoading(false);
     }
@@ -38,7 +40,7 @@ export function LoginPage() {
           id="company_slug"
           value={form.company_slug}
           onChange={(e) => setForm({ ...form, company_slug: e.target.value })}
-          placeholder="mi-empresa"
+          placeholder="El nombre de tu negocio"
           required
         />
 
