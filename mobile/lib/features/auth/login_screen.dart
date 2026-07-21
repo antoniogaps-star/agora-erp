@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -32,7 +33,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final state = ref.read(authControllerProvider);
     if (state.hasError && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Credenciales inválidas')),
+        const SnackBar(
+          content: Text(
+            'No se pudo entrar. Revisa tu identificador, correo y contraseña. '
+            'Si es la primera vez, primero crea tu cuenta.',
+          ),
+        ),
       );
     }
   }
@@ -84,7 +90,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               onPressed: isLoading ? null : _submit,
               child: Text(isLoading ? 'Entrando…' : 'Entrar'),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: isLoading
+                  ? null
+                  : () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const RegisterScreen(),
+                        ),
+                      ),
+              child: const Text('¿No tienes cuenta? Crear empresa'),
+            ),
+            const SizedBox(height: 16),
             const Row(
               children: [
                 Expanded(child: Divider()),
