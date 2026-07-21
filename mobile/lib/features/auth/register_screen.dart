@@ -1,24 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../core/slug.dart';
 
-/// Fuerza minúsculas y solo caracteres válidos de slug (a-z, 0-9, guion) mientras
-/// se escribe, para que el campo coincida con lo que exige el backend.
-class _SlugFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    final cleaned = newValue.text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9-]'), '');
-    return TextEditingValue(
-      text: cleaned,
-      selection: TextSelection.collapsed(offset: cleaned.length),
-    );
-  }
-}
-
-/// Registro de una empresa nueva + su usuario dueño. Al terminar, la sesión queda
-/// iniciada (real) y el AuthGate muestra la app.
+/// Registro de una empresa nueva + su usuario dueño. El usuario solo escribe el
+/// nombre del negocio, su correo y una contraseña; el identificador interno se
+/// genera solo a partir del nombre (ver [slugify]).
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -28,14 +16,12 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _companyName = TextEditingController();
-  final _slug = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
 
   @override
   void dispose() {
     _companyName.dispose();
-    _slug.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -48,14 +34,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     final name = _companyName.text.trim();
-    final slug = _slug.text.trim();
-    final email = _email.text.trim();
+    final email = _email.text.trim().toLowerCase();
     final password = _password.text;
+    final companySlug = slugify(name);
 
     // Validación amigable antes de llamar al servidor.
-    if (name.length < 2) return _snack('Escribe el nombre de tu empresa');
-    if (!RegExp(r'^[a-z0-9]+(?:-[a-z0-9]+)*$').hasMatch(slug)) {
-      return _snack('El identificador debe ser en minúsculas, sin espacios (ej: mi-tienda)');
+    if (name.length < 2 || companySlug.length < 2) {
+      return _snack('Escribe el nombre de tu empresa (con letras)');
     }
     if (!email.contains('@') || !email.contains('.')) {
       return _snack('Escribe un correo válido');
@@ -64,7 +49,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     await ref.read(authControllerProvider.notifier).register(
           companyName: name,
-          companySlug: slug,
+          companySlug: companySlug,
           email: email,
           password: password,
         );
@@ -72,8 +57,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final state = ref.read(authControllerProvider);
     if (!mounted) return;
     if (state.hasError) {
-      _snack('No se pudo crear la cuenta. Puede que ese identificador o correo ya existan, '
-          'o que el servidor tarde en despertar. Intenta de nuevo.');
+      _snack('No se pudo crear la cuenta. Puede que ese nombre de empresa o ese correo ya '
+          'existan, o que el servidor tarde en despertar. Intenta de nuevo.');
     } else {
       // Registro exitoso: la sesión ya es real; cerramos esta pantalla y el
       // AuthGate mostrará la app por debajo.
@@ -98,7 +83,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Se creará tu empresa y tu usuario dueño.',
+              'Con estos datos entrarás después.',
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 20),
@@ -107,24 +92,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Nombre de la empresa',
-                hintText: 'Ej: Abarrotes Doña Rosa',
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _slug,
-              inputFormatters: [_SlugFormatter()],
-              keyboardType: TextInputType.visiblePassword, // evita autocorrección
-              decoration: const InputDecoration(
-                labelText: 'Identificador (para entrar)',
-                hintText: 'ej: mi-tienda',
-                helperText: 'Solo minúsculas, números y guiones. Lo usarás para iniciar sesión.',
+                hintText: 'Ej: Modelorama Toño',
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
               decoration: const InputDecoration(labelText: 'Correo'),
             ),
             const SizedBox(height: 8),

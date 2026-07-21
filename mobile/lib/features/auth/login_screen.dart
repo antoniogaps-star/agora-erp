@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../core/slug.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -12,22 +13,24 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _slug = TextEditingController();
+  final _company = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
 
   @override
   void dispose() {
-    _slug.dispose();
+    _company.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
+    // El usuario escribe el NOMBRE de su empresa; la app lo traduce al
+    // identificador interno igual que en el registro (ver slugify).
     await ref.read(authControllerProvider.notifier).login(
-          companySlug: _slug.text.trim(),
-          email: _email.text.trim(),
+          companySlug: slugify(_company.text),
+          email: _email.text.trim().toLowerCase(),
           password: _password.text,
         );
     final state = ref.read(authControllerProvider);
@@ -72,12 +75,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 32),
             TextField(
-              controller: _slug,
-              decoration: const InputDecoration(labelText: 'Empresa (slug)'),
+              controller: _company,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Empresa',
+                hintText: 'El nombre de tu negocio',
+              ),
             ),
             TextField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
               decoration: const InputDecoration(labelText: 'Correo'),
             ),
             TextField(
