@@ -12,6 +12,7 @@ class SecureStore {
   static const _accessKey = 'access_token';
   static const _refreshKey = 'refresh_token';
   static const _dbKey = 'db_encryption_key';
+  static const _demoKey = 'demo_mode';
 
   Future<void> saveTokens(String access, String refresh) async {
     await _storage.write(key: _accessKey, value: access);
@@ -21,9 +22,22 @@ class SecureStore {
   Future<String?> get accessToken => _storage.read(key: _accessKey);
   Future<String?> get refreshToken => _storage.read(key: _refreshKey);
 
+  /// Marca (o desmarca) que la app está en modo demostración. El modo demo no usa
+  /// tokens ni servidor: es una sesión local con datos fijos de ejemplo.
+  Future<void> setDemo(bool on) async {
+    if (on) {
+      await _storage.write(key: _demoKey, value: 'true');
+    } else {
+      await _storage.delete(key: _demoKey);
+    }
+  }
+
+  Future<bool> get isDemo async => (await _storage.read(key: _demoKey)) == 'true';
+
   Future<void> clear() async {
     await _storage.delete(key: _accessKey);
     await _storage.delete(key: _refreshKey);
+    await _storage.delete(key: _demoKey);
   }
 
   /// Llave de 256 bits para cifrar la base local con SQLCipher. Se genera una vez
