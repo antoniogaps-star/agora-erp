@@ -5,17 +5,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.db.session import get_session
 from app.modules.auth import service
 from app.modules.auth.schemas import (
+    AdminBootstrapRequest,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
     TokenResponse,
 )
-from app.shared.errors import api_error
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -50,11 +49,20 @@ async def login(data: LoginRequest, session: SessionDep) -> TokenResponse:
 
 
 @router.get("/admin-status")
-async def admin_status() -> dict[str, bool]:
-    """Diagnóstico seguro: dice SOLO si el servidor tiene cargado el secreto de
-    administrador (true/false). No revela su valor. Sirve para confirmar que Render
-    ya tomó la variable LICENSE_ADMIN_SECRET tras guardarla y reiniciar."""
-    return {"admin_secret_configured": bool(settings.license_admin_secret)}
+async def admin_status(session: SessionDep) -> dict[str, bool]:
+    """Diagnóstico seguro: dice SOLO si el servidor ya tiene un secreto de
+    administrador (true/false), venga de la variable de entorno o configurado desde
+    la app. No revela su valor."""
+    return {"admin_secret_configured": await service.is_admin_configured(session)}
+
+
+@router.post("/admin/bootstrap", status_code=status.HTTP_201_CREATED)
+async def admin_bootstrap(data: AdminBootstrapRequest, session: SessionDep) -> dict[str, bool]:
+    """Configura POR PRIMERA VEZ el secreto de administrador desde la app (se guarda
+    cifrado en la base). Solo funciona si aún no hay ninguno: si ya existe, responde
+    409. Así el dueño no depende de variables de entorno del servidor."""
+    await service.bootstrap_admin_secret(session, secret=data.secret)
+    return {"admin_secret_configured": True}
 
 
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
@@ -64,24 +72,14 @@ async def reset_password(
     x_admin_secret: Annotated[str | None, Header()] = None,
 ) -> None:
     """Restablece la contraseña de una cuenta. Requiere el secreto de administrador
-    (el mismo LICENSE_ADMIN_SECRET del servidor). Pensado para que el dueño recupere
-    el acceso de un cliente que olvidó su contraseña."""
-    if not settings.license_admin_secret:
-        # El servidor no tiene (todavía) el secreto: falta configurarlo o Render aún
-        # está reiniciando tras guardarlo. Mensaje distinto para no confundir con un typo.
-        raise api_error(
-            503,
-            "ADMIN_NOT_CONFIGURED",
-            "El servidor aún no tiene configurado el secreto de administrador "
-            "(o está reiniciando tras guardarlo). Espera 1-2 minutos y reintenta.",
-        )
-    if x_admin_secret != settings.license_admin_secret:
-        raise api_error(403, "SECRET_MISMATCH", "El secreto no coincide con el del servidor")
+    (variable de entorno o el configurado desde la app). Pensado para que el dueño
+    recupere el acceso de un cliente que olvidó su contraseña."""
     await service.reset_password(
         session,
         company_slug=data.company_slug,
         email=data.email,
         new_password=data.new_password,
+        provided_secret=x_admin_secret,
     )
 
 

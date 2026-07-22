@@ -7,8 +7,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.db.session import SessionFactory
+from app.modules.auth import service as auth_service
 from app.modules.billing import service
 from app.modules.billing.schemas import (
     AdminKeyRequest,
@@ -47,7 +47,7 @@ async def admin_generate_keys(
     session: PlainSession,
     x_admin_secret: Annotated[str | None, Header()] = None,
 ) -> AdminKeyResponse:
-    if not settings.license_admin_secret or x_admin_secret != settings.license_admin_secret:
+    if not await auth_service.verify_admin_secret(session, x_admin_secret):
         raise api_error(403, "FORBIDDEN", "No autorizado")
     codes = await service.generate_keys(
         session, plan=data.plan, months=data.months, count=data.count

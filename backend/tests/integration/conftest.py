@@ -95,7 +95,9 @@ async def _clean_tables():
     engine = create_async_engine(_owner_url())
     try:
         async with engine.begin() as conn:
-            await conn.execute(text("TRUNCATE users, tenants RESTART IDENTITY CASCADE"))
+            await conn.execute(
+                text("TRUNCATE users, tenants, admin_config RESTART IDENTITY CASCADE")
+            )
     finally:
         await engine.dispose()
 

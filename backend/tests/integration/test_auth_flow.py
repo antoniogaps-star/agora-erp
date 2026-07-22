@@ -126,3 +126,83 @@ async def test_reset_password_por_admin() -> None:
             assert "access_token" in new.json()
     finally:
         settings.license_admin_secret = old_secret
+
+
+async def test_bootstrap_admin_desde_la_app() -> None:
+    """Sin variable de entorno, el dueño configura el secreto DESDE LA APP y con él
+    puede restablecer contraseñas. Un segundo bootstrap se rechaza (409)."""
+    old_secret = settings.license_admin_secret
+    settings.license_admin_secret = ""  # forzamos el modo "configurar desde la app"
+    creds = {
+        "company_name": "Depósito Uno",
+        "company_slug": "depositouno",
+        "email": "dueno@deposito.com",
+        "password": "vieja12345",
+    }
+    try:
+        async with await _client() as client:
+            await client.post("/api/v1/auth/register", json=creds)
+
+            # Antes de configurar: no hay secreto.
+            st = await client.get("/api/v1/auth/admin-status")
+            assert st.json() == {"admin_secret_configured": False}
+
+            # Restablecer sin secreto configurado: 503.
+            r = await client.post(
+                "/api/v1/auth/reset-password",
+                json={
+                    "company_slug": creds["company_slug"],
+                    "email": creds["email"],
+                    "new_password": "nueva12345",
+                },
+                headers={"X-Admin-Secret": "loquesea"},
+            )
+            assert r.status_code == 503
+
+            # Configurar por primera vez desde la app.
+            b = await client.post("/api/v1/auth/admin/bootstrap", json={"secret": "claveadmin7"})
+            assert b.status_code == 201, b.text
+
+            # Ahora sí hay secreto.
+            st = await client.get("/api/v1/auth/admin-status")
+            assert st.json() == {"admin_secret_configured": True}
+
+            # Un segundo bootstrap se rechaza.
+            b2 = await client.post("/api/v1/auth/admin/bootstrap", json={"secret": "otro123"})
+            assert b2.status_code == 409
+
+            # Secreto equivocado: 403.
+            bad = await client.post(
+                "/api/v1/auth/reset-password",
+                json={
+                    "company_slug": creds["company_slug"],
+                    "email": creds["email"],
+                    "new_password": "nueva12345",
+                },
+                headers={"X-Admin-Secret": "malo"},
+            )
+            assert bad.status_code == 403
+
+            # Secreto correcto: restablece y se entra con la nueva contraseña.
+            ok = await client.post(
+                "/api/v1/auth/reset-password",
+                json={
+                    "company_slug": creds["company_slug"],
+                    "email": creds["email"],
+                    "new_password": "nueva12345",
+                },
+                headers={"X-Admin-Secret": "claveadmin7"},
+            )
+            assert ok.status_code == 204, ok.text
+
+            login = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "company_slug": creds["company_slug"],
+                    "email": creds["email"],
+                    "password": "nueva12345",
+                },
+            )
+            assert login.status_code == 200, login.text
+    finally:
+        settings.license_admin_secret = old_secret

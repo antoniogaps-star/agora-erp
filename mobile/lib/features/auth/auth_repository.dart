@@ -39,6 +39,19 @@ class AuthRepository {
     await _saveTokens(response.data);
   }
 
+  /// Indica si el servidor ya tiene configurado un secreto de administrador
+  /// (por variable de entorno o configurado desde la app). No revela su valor.
+  Future<bool> adminConfigured() async {
+    final response = await _dio.get('/auth/admin-status');
+    return (response.data as Map)['admin_secret_configured'] == true;
+  }
+
+  /// Configura POR PRIMERA VEZ el secreto de administrador desde la app. Solo
+  /// funciona si aún no hay ninguno (si ya existe, el servidor responde 409).
+  Future<void> bootstrapAdmin(String secret) async {
+    await _dio.post('/auth/admin/bootstrap', data: {'secret': secret});
+  }
+
   /// Restablece la contraseña de una cuenta. Requiere el secreto de administrador
   /// (se envía en el header X-Admin-Secret; el servidor lo valida contra
   /// LICENSE_ADMIN_SECRET). Pensado para recuperar el acceso de un cliente.

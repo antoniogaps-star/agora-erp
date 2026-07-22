@@ -23,7 +23,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db.rls import set_tenant
-from app.modules.auth.models import RefreshToken
+from app.modules.auth.models import AdminConfig, RefreshToken
 from app.modules.auth.schemas import TokenResponse
 from app.modules.tenants.models import Tenant
 from app.modules.users.models import User
@@ -71,17 +71,70 @@ async def authenticate(session: AsyncSession, *, company_slug: str, email: str,
     return tenant, user
 
 
+# ── Secreto de administrador (configurable desde la app) ─────
+async def _db_admin_hash(session: AsyncSession) -> str | None:
+    result: str | None = await session.scalar(
+        select(AdminConfig.secret_hash).where(AdminConfig.id == 1)
+    )
+    return result
+
+
+async def is_admin_configured(session: AsyncSession) -> bool:
+    """True si hay un secreto de administrador disponible: por variable de entorno
+    (LICENSE_ADMIN_SECRET) o configurado desde la app (tabla admin_config)."""
+    if settings.license_admin_secret:
+        return True
+    return (await _db_admin_hash(session)) is not None
+
+
+async def verify_admin_secret(session: AsyncSession, provided: str | None) -> bool:
+    """Valida el secreto que llega en el header. La variable de entorno tiene
+    prioridad; si no hay, se compara contra el hash guardado en la base."""
+    if not provided:
+        return False
+    if settings.license_admin_secret:
+        return provided == settings.license_admin_secret
+    stored = await _db_admin_hash(session)
+    return stored is not None and verify_password(stored, provided)
+
+
+async def bootstrap_admin_secret(session: AsyncSession, *, secret: str) -> None:
+    """Fija el secreto de administrador por primera vez (desde la app). Solo funciona
+    si aún no hay ninguno configurado; si ya existe, responde 409 para no permitir que
+    un tercero lo reemplace."""
+    async with session.begin():
+        if settings.license_admin_secret or (await _db_admin_hash(session)) is not None:
+            raise api_error(
+                409, "ADMIN_ALREADY_CONFIGURED",
+                "El secreto de administrador ya está configurado en este servidor.",
+            )
+        session.add(AdminConfig(id=1, secret_hash=hash_password(secret)))
+
+
 async def reset_password(
-    session: AsyncSession, *, company_slug: str, email: str, new_password: str
+    session: AsyncSession, *, company_slug: str, email: str, new_password: str,
+    provided_secret: str | None,
 ) -> None:
     """Restablece la contraseña de un usuario (recuperación operada por el dueño).
 
-    Protegida en el router por el secreto de administrador. Resuelve el tenant por
-    slug, fija RLS y actualiza el hash del usuario; además revoca sus refresh tokens
-    activos para cerrar sesiones abiertas con la contraseña anterior.
+    Todas las verificaciones (secreto de administrador incluido) ocurren dentro de una
+    única transacción para no mezclar lecturas sueltas con `session.begin()`. Resuelve
+    el tenant por slug, fija RLS y actualiza el hash del usuario; además revoca sus
+    refresh tokens activos para cerrar sesiones abiertas con la contraseña anterior.
     """
     not_found = api_error(404, "NOT_FOUND", "No existe esa empresa o correo")
     async with session.begin():
+        # Secreto de administrador: no configurado (503) vs no coincide (403).
+        if not settings.license_admin_secret and (await _db_admin_hash(session)) is None:
+            raise api_error(
+                503,
+                "ADMIN_NOT_CONFIGURED",
+                "Este servidor todavía no tiene un secreto de administrador. "
+                "Configúralo una vez desde la app (Configurar secreto por primera vez).",
+            )
+        if not await verify_admin_secret(session, provided_secret):
+            raise api_error(403, "SECRET_MISMATCH", "El secreto no coincide con el del servidor")
+
         tenant = await session.scalar(select(Tenant).where(Tenant.slug == company_slug))
         if tenant is None:
             raise not_found

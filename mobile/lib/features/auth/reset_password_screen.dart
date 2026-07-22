@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../core/slug.dart';
+import 'admin_setup_screen.dart';
 
 /// Restablecer la contraseña de una cuenta. Pensada para que el DUEÑO (con su
 /// secreto de administrador) recupere el acceso de un cliente que olvidó su clave.
@@ -180,6 +181,22 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
             FilledButton(
               onPressed: _loading ? null : _submit,
               child: Text(_loading ? 'Restableciendo…' : 'Restablecer y entrar'),
+            ),
+            const Divider(height: 32),
+            const Text(
+              '¿Primera vez? Si el servidor aún no tiene secreto de administrador, '
+              'créalo aquí (una sola vez):',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            OutlinedButton.icon(
+              onPressed: _loading
+                  ? null
+                  : () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(builder: (_) => const AdminSetupScreen()),
+                      ),
+              icon: const Icon(Icons.admin_panel_settings, size: 18),
+              label: const Text('Configurar secreto por primera vez'),
             ),
           ],
         ),

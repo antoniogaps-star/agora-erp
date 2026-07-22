@@ -8,10 +8,24 @@ revoca. Ver ADR-004 y docs/09_Seguridad.md.
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+
+
+class AdminConfig(Base):
+    """Secreto de administrador de la plataforma, configurado por el dueño DESDE LA
+    APP (no depende de variables de entorno). Fila única (id=1). Se guarda el HASH,
+    nunca el secreto en claro. Sin RLS: no es por-tenant, se controla en la app."""
+
+    __tablename__ = "admin_config"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    secret_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
 
 class RefreshToken(UUIDPrimaryKeyMixin, TimestampMixin, Base):
