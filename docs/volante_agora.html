@@ -59,7 +59,10 @@
     margin-top:auto; padding-top:14px; border-top:2px dashed #d1d5db;
     display:flex; justify-content:space-between; align-items:center; gap:16px;
   }
-  .cta{font-size:15px;}
+  .qr{text-align:center; flex-shrink:0;}
+  .qr img{width:96px; height:96px; display:block; border:1px solid #e5e7eb; border-radius:8px;}
+  .qr-tip{font-size:11px; color:var(--gris); margin-top:4px;}
+  .cta{font-size:15px; flex:1;}
   .cta b{color:var(--azul);}
   .cta .prueba{display:inline-block; background:var(--verde); color:#fff; font-weight:800;
     padding:6px 12px; border-radius:20px; margin-top:8px; font-size:13px;}
@@ -143,6 +146,11 @@
     </section>
 
     <footer>
+      <div class="qr">
+        <img alt="Código QR para descargar Ágora ERP"
+          src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASgAAAEoAQMAAADRyf5aAAAABlBMVEURGCf///8AJgUnAAABfklEQVR42u2awQ7DMAhD0f7/n9nWBGMSMlXTbnOnVWma0xM4htT8zmVapVXfrrJxvcevu82p8uZhd65/WGUB9rqvjzEUr8JrhJMB2TXh+Ua8el4jCUdKided+BpjQideR/2aiCBfJv3qec1B89P+2PCCtbCIKpL/cYnXql+Tzog3IjgexKvyChdRND8mlI9rPmJLDMlyq65MvBb9YkOBifkXr2Z/jHLRM7rSfonXko9Oxt6CG5VG4sW8Ak/oWKTllDPFV8fLU+ph8GEuxGvzE5SZ6E3AWIjXpvdgAwGjhBSvWm8TKfRY07CK16ZfWTo6Z6fq7UM+hgmLGdYvxVfHK9s6uU+iCyZeVb+crQTahuksxGvh5VwEcVda8dXuj9SVwNEa4RSvpT8RhJz1DCdE4rX5VWyJXnoW8l8H/cIZR5Tfac3Ea6sfS7ML3Z3wF+LV8+KeNPJSvD7xco4yhyUTr0a/nL80wfma+l+n/dFwqOb5MZj819F/6ctBrfr5qidn8h0WF/GnDQAAAABJRU5ErkJggg==">
+        <div class="qr-tip">Escanea para descargar</div>
+      </div>
       <div class="cta">
         Descárgala hoy:<br>
         <b>github.com/antoniogaps-star/agora-erp/releases</b>
