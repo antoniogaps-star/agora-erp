@@ -45,3 +45,8 @@ export async function createSale(input: {
 export async function deleteProduct(id: string): Promise<void> {
   await api.delete(`/products/${id}`);
 }
+
+export async function listSales(): Promise<Sale[]> {
+  const { data } = await api.get("/sales");
+  return z.array(saleSchema).parse(data);
+}

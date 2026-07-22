@@ -6,11 +6,14 @@ import { fetchMe } from "@/features/dashboard/api";
 import { useAuthStore } from "@/shared/auth/store";
 
 const LINKS = [
-  { to: "/", label: "Inventario", end: true },
-  { to: "/customers", label: "Clientes", end: false },
-  { to: "/invoices", label: "Facturación", end: false },
-  { to: "/reports", label: "Reportes", end: false },
-  { to: "/accounting", label: "Contabilidad", end: false },
+  { to: "/", label: "Dashboard", end: true },
+  { to: "/inventario", label: "Inventario", end: false },
+  { to: "/productos", label: "Productos", end: false },
+  { to: "/movimientos", label: "Movimientos", end: false },
+  { to: "/reportes", label: "Reportes", end: false },
+  { to: "/exportar", label: "Exportar Excel", end: false },
+  { to: "/negocios", label: "Negocios", end: false },
+  { to: "/usuarios", label: "Usuarios", end: false },
 ];
 
 export function AppLayout() {
