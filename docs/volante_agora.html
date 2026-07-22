@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ágora ERP · Volante</title>
+<style>
+  :root{
+    --azul:#2F6DF6; --verde:#15803D; --naranja:#F59E0B; --morado:#7C3AED;
+    --gris:#6b7280; --tinta:#111827;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:#e5e7eb; font-family:"Segoe UI",system-ui,Arial,sans-serif; color:var(--tinta);}
+  .hoja{
+    width:210mm; min-height:297mm; margin:12px auto; background:#fff;
+    padding:14mm 14mm 12mm; display:flex; flex-direction:column;
+    box-shadow:0 6px 24px rgba(0,0,0,.18);
+  }
+  header{text-align:center; border-bottom:3px solid var(--azul); padding-bottom:10px;}
+  .logo{font-size:40px; font-weight:800; color:var(--azul); letter-spacing:.5px;}
+  .logo span{color:var(--verde);}
+  .lema{font-size:22px; font-weight:800; margin-top:4px;}
+  .sub{color:var(--gris); font-size:14px; margin-top:2px;}
+
+  .hero{
+    margin:14px 0; background:linear-gradient(135deg,#eef4ff,#f0fdf4);
+    border:1px solid #dbeafe; border-radius:14px; padding:14px 18px; text-align:center;
+  }
+  .hero h2{font-size:19px; color:var(--tinta);}
+  .hero p{color:var(--gris); font-size:14px; margin-top:4px;}
+
+  .cols{display:flex; gap:14px; margin-top:6px;}
+  .card{flex:1; border:1px solid #e5e7eb; border-radius:12px; padding:12px 14px;}
+  .card h3{font-size:14px; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px;}
+  .card.benef h3{color:var(--verde);}
+  .card.pasos h3{color:var(--naranja);}
+  ul{list-style:none;}
+  li{font-size:13.5px; padding:4px 0 4px 22px; position:relative; line-height:1.35;}
+  .benef li::before{content:"✓"; position:absolute; left:0; color:var(--verde); font-weight:800;}
+  .pasos li{padding-left:26px;}
+  .pasos li b{color:var(--naranja);}
+
+  .planes{margin-top:16px;}
+  .planes h3{font-size:15px; text-align:center; margin-bottom:8px; color:var(--morado);}
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th,td{border:1px solid #e5e7eb; padding:7px 8px; text-align:center;}
+  th{background:#f9fafb; color:var(--gris); font-weight:700;}
+  td.plan{font-weight:800; text-align:left;}
+  .esencial{color:var(--verde);} .prof{color:var(--azul);} .emp{color:var(--morado);}
+  .precio{font-weight:800;}
+  .tachado{color:var(--gris); text-decoration:line-through; font-weight:500; font-size:11px;}
+
+  .oferta{
+    margin-top:12px; background:#fff7e6; border:1px solid var(--naranja);
+    border-radius:10px; padding:10px 14px; font-size:13.5px; text-align:center; font-weight:600;
+  }
+
+  footer{
+    margin-top:auto; padding-top:14px; border-top:2px dashed #d1d5db;
+    display:flex; justify-content:space-between; align-items:center; gap:16px;
+  }
+  .cta{font-size:15px;}
+  .cta b{color:var(--azul);}
+  .cta .prueba{display:inline-block; background:var(--verde); color:#fff; font-weight:800;
+    padding:6px 12px; border-radius:20px; margin-top:8px; font-size:13px;}
+  .contacto{text-align:right; font-size:13px; color:var(--gris);}
+  .contacto .linea{margin-top:3px;}
+  .contacto b{color:var(--tinta);}
+
+  @media print{
+    html,body{background:#fff;}
+    .hoja{margin:0; box-shadow:none; width:auto; min-height:auto; padding:12mm;}
+    @page{size:A4; margin:0;}
+  }
+</style>
+</head>
+<body>
+  <div class="hoja">
+    <header>
+      <div class="logo">Ágora<span>ERP</span></div>
+      <div class="lema">Dictas. Vendes. Ganas.</div>
+      <div class="sub">Inventario y ventas para tu negocio, desde el celular · Funciona sin internet</div>
+    </header>
+
+    <section class="hero">
+      <h2>Deja de escribir producto por producto.</h2>
+      <p>Haz tu inventario hablando y vende con ticket en segundos. Más rápido, más simple, menos errores.</p>
+    </section>
+
+    <div class="cols">
+      <div class="card benef">
+        <h3>Lo que puedes hacer</h3>
+        <ul>
+          <li>Inventario por voz desde el celular</li>
+          <li>Control de entradas y salidas</li>
+          <li>Vender por pieza, six o caja</li>
+          <li>Ticket y envío por WhatsApp</li>
+          <li>Exportar tus ventas a Excel</li>
+          <li>Panel en la computadora con reportes</li>
+          <li>Funciona sin internet y se sincroniza solo</li>
+        </ul>
+      </div>
+      <div class="card pasos">
+        <h3>Empezar es fácil</h3>
+        <ul>
+          <li><b>1.</b> Descarga la app en tu celular</li>
+          <li><b>2.</b> Crea tu empresa (nombre, correo y contraseña)</li>
+          <li><b>3.</b> Agrega tus productos</li>
+          <li><b>4.</b> ¡Empieza a vender y llevar tu inventario!</li>
+        </ul>
+        <div class="oferta">🚀 Oferta de lanzamiento para los primeros 100 clientes</div>
+      </div>
+    </div>
+
+    <section class="planes">
+      <h3>Planes a tu medida</h3>
+      <table>
+        <thead>
+          <tr><th>Plan</th><th>Negocios</th><th>Al mes</th><th>Anual</th><th>Perpetua</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="plan esencial">Esencial</td>
+            <td>1</td>
+            <td><span class="precio">$199</span> <span class="tachado">$299</span></td>
+            <td>$2,990</td><td>$5,990</td>
+          </tr>
+          <tr>
+            <td class="plan prof">Profesional</td>
+            <td>hasta 3</td>
+            <td><span class="precio">$399</span> <span class="tachado">$599</span></td>
+            <td>$5,990</td><td>$10,990</td>
+          </tr>
+          <tr>
+            <td class="plan emp">Empresarial</td>
+            <td>hasta 6</td>
+            <td><span class="precio">$699</span> <span class="tachado">$999</span></td>
+            <td>$9,990</td><td>$17,990</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="sub" style="text-align:center;margin-top:6px;">Pago por transferencia o efectivo · Precio de lanzamiento durante los primeros 12 meses</p>
+    </section>
+
+    <footer>
+      <div class="cta">
+        Descárgala hoy:<br>
+        <b>github.com/antoniogaps-star/agora-erp/releases</b>
+        <div class="prueba">🎁 Prueba gratis · 7 días</div>
+      </div>
+      <div class="contacto">
+        <div><b>Ágora ERP</b></div>
+        <div class="linea">Contacto / ventas:</div>
+        <div class="linea"><b>_______________________</b></div>
+        <div class="linea">WhatsApp: _______________</div>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
