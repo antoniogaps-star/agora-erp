@@ -38,9 +38,14 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   String _mapError(Object e) {
     if (e is DioException) {
       final code = e.response?.statusCode;
+      if (code == 503) {
+        return 'El servidor aún no tiene cargado el secreto (o sigue reiniciando '
+            'tras guardarlo en Render). Espera 1-2 minutos y toca de nuevo '
+            '"Restablecer y entrar".';
+      }
       if (code == 403) {
-        return 'Secreto de administrador incorrecto. Es el valor de '
-            'LICENSE_ADMIN_SECRET que pusiste en el servidor.';
+        return 'El secreto NO coincide con el del servidor. Revísalo carácter por '
+            'carácter (ojo con la letra O vs el número 0, y mayúsculas).';
       }
       if (code == 404) {
         return 'No existe una empresa con ese nombre y correo. Revísalos.';

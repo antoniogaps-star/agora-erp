@@ -49,6 +49,14 @@ async def login(data: LoginRequest, session: SessionDep) -> TokenResponse:
     )
 
 
+@router.get("/admin-status")
+async def admin_status() -> dict[str, bool]:
+    """Diagnóstico seguro: dice SOLO si el servidor tiene cargado el secreto de
+    administrador (true/false). No revela su valor. Sirve para confirmar que Render
+    ya tomó la variable LICENSE_ADMIN_SECRET tras guardarla y reiniciar."""
+    return {"admin_secret_configured": bool(settings.license_admin_secret)}
+
+
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
 async def reset_password(
     data: ResetPasswordRequest,
@@ -58,8 +66,17 @@ async def reset_password(
     """Restablece la contraseña de una cuenta. Requiere el secreto de administrador
     (el mismo LICENSE_ADMIN_SECRET del servidor). Pensado para que el dueño recupere
     el acceso de un cliente que olvidó su contraseña."""
-    if not settings.license_admin_secret or x_admin_secret != settings.license_admin_secret:
-        raise api_error(403, "FORBIDDEN", "Secreto de administrador incorrecto")
+    if not settings.license_admin_secret:
+        # El servidor no tiene (todavía) el secreto: falta configurarlo o Render aún
+        # está reiniciando tras guardarlo. Mensaje distinto para no confundir con un typo.
+        raise api_error(
+            503,
+            "ADMIN_NOT_CONFIGURED",
+            "El servidor aún no tiene configurado el secreto de administrador "
+            "(o está reiniciando tras guardarlo). Espera 1-2 minutos y reintenta.",
+        )
+    if x_admin_secret != settings.license_admin_secret:
+        raise api_error(403, "SECRET_MISMATCH", "El secreto no coincide con el del servidor")
     await service.reset_password(
         session,
         company_slug=data.company_slug,
