@@ -23,6 +23,7 @@ Esta carpeta es la **fuente única de verdad** del proyecto. Ningún código se 
 | 12 | [Despliegue](12_Despliegue.md) | Docker Compose full-stack, variables, datos demo |
 | 13 | [Oferta Comercial](13_Oferta_Comercial.md) | Pitch, demo, precios, canales — "Dictas. Vendes. Ganas." |
 | 14 | [Bitácora del Proceso](14_Bitacora_Proceso.md) | Todo lo construido: entrada, demo, ventas, monetización, panel, despliegue y pendientes |
+| 15 | [Manual de Usuario](15_Manual_Usuario.md) | Guía sencilla para el cliente y el vendedor (instalar, usar, vender, activar) |
 
 ## Decisiones arquitectónicas de fondo (resumen)
 
