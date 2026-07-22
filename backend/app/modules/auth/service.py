@@ -71,6 +71,38 @@ async def authenticate(session: AsyncSession, *, company_slug: str, email: str,
     return tenant, user
 
 
+async def reset_password(
+    session: AsyncSession, *, company_slug: str, email: str, new_password: str
+) -> None:
+    """Restablece la contraseña de un usuario (recuperación operada por el dueño).
+
+    Protegida en el router por el secreto de administrador. Resuelve el tenant por
+    slug, fija RLS y actualiza el hash del usuario; además revoca sus refresh tokens
+    activos para cerrar sesiones abiertas con la contraseña anterior.
+    """
+    not_found = api_error(404, "NOT_FOUND", "No existe esa empresa o correo")
+    async with session.begin():
+        tenant = await session.scalar(select(Tenant).where(Tenant.slug == company_slug))
+        if tenant is None:
+            raise not_found
+
+        await set_tenant(session, tenant.id)
+        user = await session.scalar(
+            select(User).where(User.email == email, User.is_deleted.is_(False))
+        )
+        if user is None:
+            raise not_found
+
+        user.password_hash = hash_password(new_password)
+        # Cierra sesiones previas: los refresh tokens viejos dejan de servir.
+        for token in await session.scalars(
+            select(RefreshToken).where(
+                RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None)
+            )
+        ):
+            token.revoked_at = datetime.now(UTC)
+
+
 async def _store_tokens(
     session: AsyncSession, *, user_id: UUID, tenant_id: UUID, role: str
 ) -> TokenResponse:

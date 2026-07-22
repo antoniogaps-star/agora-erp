@@ -21,6 +21,12 @@ class LoginRequest(BaseModel):
     password: Password
 
 
+class ResetPasswordRequest(BaseModel):
+    company_slug: Slug
+    email: EmailStr
+    new_password: Password
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 

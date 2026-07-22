@@ -39,6 +39,26 @@ class AuthRepository {
     await _saveTokens(response.data);
   }
 
+  /// Restablece la contraseña de una cuenta. Requiere el secreto de administrador
+  /// (se envía en el header X-Admin-Secret; el servidor lo valida contra
+  /// LICENSE_ADMIN_SECRET). Pensado para recuperar el acceso de un cliente.
+  Future<void> resetPassword({
+    required String companySlug,
+    required String email,
+    required String newPassword,
+    required String adminSecret,
+  }) async {
+    await _dio.post(
+      '/auth/reset-password',
+      data: {
+        'company_slug': companySlug,
+        'email': email,
+        'new_password': newPassword,
+      },
+      options: Options(headers: {'X-Admin-Secret': adminSecret}),
+    );
+  }
+
   Future<Map<String, dynamic>> me() async {
     final response = await _dio.get('/users/me');
     return Map<String, dynamic>.from(response.data as Map);

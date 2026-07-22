@@ -6,6 +6,7 @@ import '../../core/slug.dart';
 import '../billing/pricing_screen.dart';
 import 'auth_errors.dart';
 import 'register_screen.dart';
+import 'reset_password_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -162,6 +163,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
               child: const Text('¿No tienes cuenta? Crear empresa'),
+            ),
+            TextButton(
+              onPressed: _loading
+                  ? null
+                  : () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => ResetPasswordScreen(
+                            initialCompany: _company.text.trim(),
+                            initialEmail: _email.text.trim(),
+                          ),
+                        ),
+                      ),
+              child: const Text('¿Olvidaste tu contraseña?'),
             ),
             const SizedBox(height: 16),
             const Row(

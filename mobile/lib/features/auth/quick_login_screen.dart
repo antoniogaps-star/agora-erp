@@ -6,6 +6,7 @@ import '../../core/slug.dart';
 import '../billing/pricing_screen.dart';
 import 'auth_errors.dart';
 import 'login_screen.dart';
+import 'reset_password_screen.dart';
 
 /// Pantalla de entrada rápida (para cuando YA hay una cuenta guardada en el equipo):
 /// muestra la empresa y solo pide la contraseña. Recuadro verde arriba.
@@ -117,6 +118,19 @@ class _QuickLoginScreenState extends ConsumerState<QuickLoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              TextButton(
+                onPressed: _loading
+                    ? null
+                    : () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => ResetPasswordScreen(
+                              initialCompany: widget.company,
+                              initialEmail: widget.email,
+                            ),
+                          ),
+                        ),
+                child: const Text('¿Olvidaste tu contraseña?'),
+              ),
               TextButton(
                 onPressed: _loading
                     ? null

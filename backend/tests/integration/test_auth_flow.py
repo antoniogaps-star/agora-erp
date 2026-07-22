@@ -2,6 +2,7 @@
 
 from httpx import ASGITransport, AsyncClient
 
+from app.core.config import settings
 from app.main import app
 
 
@@ -59,3 +60,69 @@ async def test_login_credenciales_invalidas() -> None:
         )
     assert bad.status_code == 401
     assert bad.json()["error"]["code"] == "INVALID_CREDENTIALS"
+
+
+async def test_reset_password_por_admin() -> None:
+    """El dueño (con el secreto de admin) restablece la contraseña de una cuenta que
+    olvidó su clave, y luego se puede entrar con la nueva."""
+    creds = {
+        "company_name": "Abarrotes Toño",
+        "company_slug": "abarrotestono",
+        "email": "dueno@tono.com",
+        "password": "vieja12345",
+    }
+    old_secret = settings.license_admin_secret
+    settings.license_admin_secret = "secreto-de-tono"
+    try:
+        async with await _client() as client:
+            reg = await client.post("/api/v1/auth/register", json=creds)
+            assert reg.status_code == 201, reg.text
+
+            # Sin secreto correcto: prohibido.
+            r = await client.post(
+                "/api/v1/auth/reset-password",
+                json={
+                    "company_slug": creds["company_slug"],
+                    "email": creds["email"],
+                    "new_password": "nueva12345",
+                },
+                headers={"X-Admin-Secret": "mal-secreto"},
+            )
+            assert r.status_code == 403
+
+            # Con secreto correcto: restablece.
+            r = await client.post(
+                "/api/v1/auth/reset-password",
+                json={
+                    "company_slug": creds["company_slug"],
+                    "email": creds["email"],
+                    "new_password": "nueva12345",
+                },
+                headers={"X-Admin-Secret": "secreto-de-tono"},
+            )
+            assert r.status_code == 204, r.text
+
+            # La contraseña vieja ya no sirve.
+            old = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "company_slug": creds["company_slug"],
+                    "email": creds["email"],
+                    "password": "vieja12345",
+                },
+            )
+            assert old.status_code == 401
+
+            # La nueva sí.
+            new = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "company_slug": creds["company_slug"],
+                    "email": creds["email"],
+                    "password": "nueva12345",
+                },
+            )
+            assert new.status_code == 200, new.text
+            assert "access_token" in new.json()
+    finally:
+        settings.license_admin_secret = old_secret
