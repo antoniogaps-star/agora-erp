@@ -5,7 +5,9 @@ capa de aplicación. El resto de tablas de negocio referencian su `id`.
 Ver docs/04_Base_Datos.md.
 """
 
-from sqlalchemy import CheckConstraint, String
+from datetime import datetime
+
+from sqlalchemy import CheckConstraint, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -25,3 +27,5 @@ class Tenant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     slug: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     plan: Mapped[str] = mapped_column(String(20), default="free", server_default="free")
     status: Mapped[str] = mapped_column(String(20), default="trial", server_default="trial")
+    # Vence la licencia de pago (null = sin licencia activa o perpetua).
+    plan_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

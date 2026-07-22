@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     # ── IA de dictado (Google Gemini, capa gratuita) ─────────
     # Sin llave, el endpoint de voz responde 503 y el móvil usa reglas locales.
     # Groq (preferido: cupo gratuito amplio y estable)
+    # Secreto para generar claves de activación (endpoint admin). Vacío = deshabilitado.
+    license_admin_secret: str = ""
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
     # Gemini (alternativa)

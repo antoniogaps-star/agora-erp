@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.db.session import engine
 from app.modules.accounting.router import router as accounting_router
 from app.modules.auth.router import router as auth_router
+from app.modules.billing.router import router as billing_router
 from app.modules.customers.router import router as customers_router
 from app.modules.invoices.router import router as invoices_router
 from app.modules.products.router import router as products_router
@@ -76,6 +77,7 @@ async def health_db() -> dict[str, str]:
 
 # ── Routers de negocio ───────────────────────────────────────
 app.include_router(auth_router, prefix=API_PREFIX)
+app.include_router(billing_router, prefix=API_PREFIX)
 app.include_router(users_router, prefix=API_PREFIX)
 app.include_router(products_router, prefix=API_PREFIX)
 app.include_router(sales_router, prefix=API_PREFIX)
