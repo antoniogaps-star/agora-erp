@@ -64,6 +64,17 @@ final customersProvider = FutureProvider.autoDispose<List<Customer>>(
   (ref) => ref.watch(customersRepositoryProvider).listCustomers(),
 );
 
+/// Cuenta recordada en este equipo (empresa + correo con los que se entró antes).
+/// Si existe, al abrir la app se muestra la pantalla verde de "Entrar" (solo pide
+/// contraseña); si no, se muestra directamente la de crear empresa.
+final savedAccountProvider = FutureProvider<(String company, String email)?>((ref) async {
+  final store = ref.watch(secureStoreProvider);
+  final company = await store.lastCompany;
+  final email = await store.lastEmail;
+  if (company == null || email == null || company.isEmpty || email.isEmpty) return null;
+  return (company, email);
+});
+
 /// Estado de sesión: real (token guardado), demo (datos fijos locales) o ninguna.
 class AuthController extends AsyncNotifier<SessionKind> {
   AuthRepository get _repo => ref.read(authRepositoryProvider);

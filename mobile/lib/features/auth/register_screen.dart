@@ -63,6 +63,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } else {
       // Guarda los datos para prellenar el próximo login (así no habrá typos).
       await store.saveLastLogin(name, email);
+      // A partir de ahora, al abrir la app se mostrará la pantalla verde "Entrar".
+      ref.invalidate(savedAccountProvider);
       // Registro exitoso: la sesión ya es real; cerramos esta pantalla y el
       // AuthGate mostrará la app por debajo.
       if (mounted) Navigator.of(context).pop();
@@ -79,7 +81,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 8),
+            // Recuadro naranja superior (primera vez que se abre la app).
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Crear empresa',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 20),
             const Text(
               'Registra tu empresa',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
