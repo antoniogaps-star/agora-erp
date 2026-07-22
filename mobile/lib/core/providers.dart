@@ -97,22 +97,23 @@ class AuthController extends AsyncNotifier<SessionKind> {
     state = const AsyncData(SessionKind.real);
   }
 
+  /// Crea la empresa. Igual que [login], NO usa AsyncLoading para no reemplazar la
+  /// pantalla de registro mientras se procesa (si se reemplazara, el error nunca se
+  /// alcanzaría a mostrar y el formulario reaparecería vacío). Lanza si falla; la
+  /// pantalla atrapa la excepción y muestra el mensaje.
   Future<void> register({
     required String companyName,
     required String companySlug,
     required String email,
     required String password,
   }) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await _repo.register(
-        companyName: companyName,
-        companySlug: companySlug,
-        email: email,
-        password: password,
-      );
-      return SessionKind.real;
-    });
+    await _repo.register(
+      companyName: companyName,
+      companySlug: companySlug,
+      email: email,
+      password: password,
+    );
+    state = const AsyncData(SessionKind.real);
   }
 
   /// Entra al modo demostración: marca la sesión local y carga datos fijos frescos.

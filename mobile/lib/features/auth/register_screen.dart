@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../core/slug.dart';
 import 'auth_errors.dart';
+import 'login_screen.dart';
 
 /// Registro de una empresa nueva + su usuario dueño. El usuario solo escribe el
 /// nombre del negocio, su correo y una contraseña; el identificador interno se
@@ -20,6 +21,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _showPassword = false;
+  bool _loading = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -27,11 +30,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _email.dispose();
     _password.dispose();
     super.dispose();
-  }
-
-  void _snack(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Future<void> _submit() async {
@@ -42,38 +40,43 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     // Validación amigable antes de llamar al servidor.
     if (name.length < 2 || companySlug.length < 2) {
-      return _snack('Escribe el nombre de tu empresa (con letras)');
+      setState(() => _error = 'Escribe el nombre de tu empresa (con letras).');
+      return;
     }
     if (!email.contains('@') || !email.contains('.')) {
-      return _snack('Escribe un correo válido');
+      setState(() => _error = 'Escribe un correo válido.');
+      return;
     }
-    if (password.length < 8) return _snack('La contraseña debe tener al menos 8 caracteres');
+    if (password.length < 8) {
+      setState(() => _error = 'La contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
 
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     final store = ref.read(secureStoreProvider);
-    await ref.read(authControllerProvider.notifier).register(
-          companyName: name,
-          companySlug: companySlug,
-          email: email,
-          password: password,
-        );
-
-    final state = ref.read(authControllerProvider);
-    if (state.hasError) {
-      if (mounted) _snack(authErrorMessage(state.error, isRegister: true));
-    } else {
-      // Guarda los datos para prellenar el próximo login (así no habrá typos).
+    try {
+      await ref.read(authControllerProvider.notifier).register(
+            companyName: name,
+            companySlug: companySlug,
+            email: email,
+            password: password,
+          );
+      // Éxito: la sesión ya es real. Guardamos los datos para el próximo ingreso
+      // (pantalla verde "Entrar") y el AuthGate mostrará la app.
       await store.saveLastLogin(name, email);
-      // A partir de ahora, al abrir la app se mostrará la pantalla verde "Entrar".
       ref.invalidate(savedAccountProvider);
-      // Registro exitoso: la sesión ya es real; cerramos esta pantalla y el
-      // AuthGate mostrará la app por debajo.
-      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) setState(() => _error = authErrorMessage(e, isRegister: true));
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(authControllerProvider).isLoading;
     return Scaffold(
       appBar: AppBar(title: const Text('Crear cuenta')),
       body: SingleChildScrollView(
@@ -126,6 +129,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             TextField(
               controller: _password,
               obscureText: !_showPassword,
+              onSubmitted: (_) => _submit(),
               decoration: InputDecoration(
                 labelText: 'Contraseña',
                 helperText: 'Mínimo 8 caracteres. Toca el ojo para verla y anótala.',
@@ -136,12 +140,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
               ),
             ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEE2E2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(_error!, style: const TextStyle(color: Color(0xFFB91C1C))),
+              ),
+            ],
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: isLoading ? null : _submit,
-              child: Text(isLoading ? 'Creando…' : 'Crear cuenta'),
+              onPressed: _loading ? null : _submit,
+              child: Text(_loading ? 'Creando…' : 'Crear cuenta'),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _loading
+                  ? null
+                  : () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+                      ),
+              child: const Text('¿Ya tienes empresa? Entrar'),
+            ),
+            const SizedBox(height: 4),
             const Text(
               'La primera vez puede tardar hasta ~1 minuto mientras el servidor despierta.',
               textAlign: TextAlign.center,

@@ -9,7 +9,10 @@ String authErrorMessage(Object? error, {required bool isRegister}) {
       return 'Correo o contraseña incorrectos para esa empresa.';
     }
     if (code == 409) {
-      return 'Ya existe una empresa con ese nombre. Usa otro nombre o agrégale algo.';
+      return isRegister
+          ? 'Ese nombre de empresa ya está registrado. Si es tuya, toca '
+              '"¿Ya tienes empresa? Entrar" y usa tu contraseña; si no, usa otro nombre.'
+          : 'Ya existe una empresa con ese nombre. Usa otro nombre o agrégale algo.';
     }
     if (code == 422) {
       return 'Revisa el nombre de la empresa y el correo (correo válido, nombre con letras).';
