@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../data/local/database.dart';
 import '../../shared/voice/voice_capture_button.dart';
-import 'inventory_repository.dart';
+import '../sales/sell_sheet.dart';
+import '../sales/ticket_screen.dart';
 
 /// Pestaña de inventario: producto + piezas (en sus presentaciones de llegada).
 /// El precio no se maneja aquí; pertenece a la venta.
@@ -94,6 +96,18 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
     return result ?? false;
   }
 
+  Future<void> _sell(Product product, int stock) async {
+    final business = await ref.read(secureStoreProvider).lastCompany ?? '';
+    if (!mounted) return;
+    final ticket = await showSellSheet(context, product, stock, business);
+    if (ticket != null && mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => TicketScreen(ticket: ticket)),
+      );
+      ref.invalidate(productsProvider);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final products = ref.watch(productsProvider);
@@ -158,23 +172,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                             title: Text(product.name),
                             subtitle: Text('$stock piezas'),
                             trailing: FilledButton(
-                              onPressed: stock < 1
-                                  ? null
-                                  : () async {
-                                      final messenger = ScaffoldMessenger.of(context);
-                                      try {
-                                        await ref
-                                            .read(inventoryRepositoryProvider)
-                                            .sell(product);
-                                        ref.invalidate(productsProvider);
-                                      } on InsufficientStockException {
-                                        messenger.showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Stock insuficiente'),
-                                          ),
-                                        );
-                                      }
-                                    },
+                              onPressed: stock < 1 ? null : () => _sell(product, stock),
                               child: const Text('Vender'),
                             ),
                           ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../customers/customers_tab.dart';
 import '../inventory/inventory_tab.dart';
+import '../sales/export_sales.dart';
 
 /// Shell principal tras iniciar sesión: pestañas de Inventario y Clientes,
 /// con sincronización y logout en la barra superior.
@@ -39,6 +40,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _exportSales() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await exportSalesCsv(ref.read(databaseProvider));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('No se pudo exportar: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDemo = ref.watch(authControllerProvider).valueOrNull == SessionKind.demo;
@@ -46,6 +56,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         title: Text(_tab == 0 ? 'Inventario' : 'Clientes'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.download),
+            tooltip: 'Exportar ventas (Excel)',
+            onPressed: _exportSales,
+          ),
           IconButton(icon: const Icon(Icons.sync), tooltip: 'Sincronizar', onPressed: _sync),
           IconButton(
             icon: const Icon(Icons.logout),

@@ -76,13 +76,14 @@ class InventoryRepository {
     }
   }
 
-  Future<void> sell(Product product, {int quantity = 1}) async {
+  Future<void> sell(Product product, {int quantity = 1, int? unitPriceCents}) async {
     // Guarda offline: no vender más de lo que el dispositivo cree tener.
     final available = (await _db.stockByProduct())[product.id] ?? 0;
     if (quantity > available) {
       throw InsufficientStockException(available: available, requested: quantity);
     }
 
+    final price = unitPriceCents ?? product.priceCents;
     final tenantId = await _getTenantId();
     await _db.into(_db.sales).insert(
           SalesCompanion.insert(
@@ -90,11 +91,23 @@ class InventoryRepository {
             tenantId: tenantId,
             productId: product.id,
             quantity: quantity,
-            unitPriceCents: product.priceCents,
-            totalCents: product.priceCents * quantity,
+            unitPriceCents: price,
+            totalCents: price * quantity,
           ),
         );
     await _addMovement(tenantId, product.id, -quantity, 'sale');
+  }
+
+  /// Guarda el precio por pieza del producto (para prellenarlo en próximas ventas).
+  Future<void> updateProductPrice(Product product, int priceCents) async {
+    await (_db.update(_db.products)..where((p) => p.id.equals(product.id))).write(
+      ProductsCompanion(
+        priceCents: Value(priceCents),
+        isDirty: const Value(true),
+        version: Value(product.version + 1),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   /// Borrado lógico (tombstone): se marca eliminado y queda pendiente de subir; al
