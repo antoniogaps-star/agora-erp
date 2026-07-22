@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'activation_screen.dart';
+import 'admin_keys_screen.dart';
+
 /// Un plan comercial con sus precios (en pesos) y beneficios.
 class _Plan {
   const _Plan({
@@ -163,6 +166,22 @@ class PricingScreen extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ActivationScreen()),
+            ),
+            icon: const Icon(Icons.vpn_key),
+            label: const Text('Ya pagué · Ingresar clave de activación'),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const AdminKeysScreen()),
+            ),
+            icon: const Icon(Icons.admin_panel_settings, size: 18),
+            label: const Text('Soy el vendedor · Generar claves'),
           ),
         ],
       ),

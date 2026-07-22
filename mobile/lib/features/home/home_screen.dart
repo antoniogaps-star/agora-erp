@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../billing/pricing_screen.dart';
 import '../customers/customers_tab.dart';
 import '../inventory/inventory_tab.dart';
 import '../sales/export_sales.dart';
@@ -56,6 +57,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         title: Text(_tab == 0 ? 'Inventario' : 'Clientes'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.workspace_premium),
+            tooltip: 'Planes y activación',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const PricingScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.download),
             tooltip: 'Exportar ventas (Excel)',
