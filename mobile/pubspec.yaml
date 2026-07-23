@@ -26,6 +26,8 @@ dependencies:
   path_provider: ^2.1.5
   # Dictado por voz (captura de inventario/clientes)
   speech_to_text: ^7.4.0
+  # Detectar permiso de micrófono bloqueado y abrir los ajustes de la app
+  permission_handler: ^11.3.1
   # Compartir ticket por WhatsApp y exportar ventas
   url_launcher: ^6.3.0
   share_plus: ^10.1.0

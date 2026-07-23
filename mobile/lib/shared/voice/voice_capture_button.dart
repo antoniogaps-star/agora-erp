@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -46,13 +47,7 @@ class _VoiceCaptureButtonState extends State<VoiceCaptureButton> {
         onError: (_) {}, // los errores transitorios se reintentan vía onStatus
       );
       if (!_initialized) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Micrófono no disponible o permiso denegado'),
-            ),
-          );
-        }
+        await _showMicUnavailable();
         return;
       }
       _localeId = await _pickSpanishLocale();
@@ -60,6 +55,28 @@ class _VoiceCaptureButtonState extends State<VoiceCaptureButton> {
 
     setState(() => _active = true);
     await _listen();
+  }
+
+  /// Avisa que el dictado no arrancó. Si el permiso de micrófono está bloqueado de forma
+  /// permanente, ofrece un atajo para abrir los ajustes de la app (única vía en Android
+  /// cuando el usuario marcó "no volver a preguntar").
+  Future<void> _showMicUnavailable() async {
+    final blocked = await Permission.microphone.isPermanentlyDenied;
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    if (blocked) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('El micrófono está bloqueado. Actívalo en Ajustes para dictar.'),
+          duration: Duration(seconds: 6),
+          action: SnackBarAction(label: 'Abrir ajustes', onPressed: openAppSettings),
+        ),
+      );
+    } else {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Micrófono no disponible o permiso denegado')),
+      );
+    }
   }
 
   /// Elige el mejor locale de español disponible (prefiere es-MX), o null para que el
