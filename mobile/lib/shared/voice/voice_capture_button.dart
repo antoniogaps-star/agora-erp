@@ -23,6 +23,9 @@ class _VoiceCaptureButtonState extends State<VoiceCaptureButton> {
   final SpeechToText _speech = SpeechToText();
   bool _initialized = false;
   bool _active = false;
+  // Idioma del reconocedor: se fija a español al iniciar (no al idioma del teléfono),
+  // para que el dictado en español se transcriba bien aunque el celular esté en inglés.
+  String? _localeId;
 
   @override
   void dispose() {
@@ -52,15 +55,34 @@ class _VoiceCaptureButtonState extends State<VoiceCaptureButton> {
         }
         return;
       }
+      _localeId = await _pickSpanishLocale();
     }
 
     setState(() => _active = true);
     await _listen();
   }
 
+  /// Elige el mejor locale de español disponible (prefiere es-MX), o null para que el
+  /// sistema use su idioma por defecto si no hay ninguno de español instalado.
+  Future<String?> _pickSpanishLocale() async {
+    final locales = await _speech.locales();
+    bool isEs(String id) => id.toLowerCase().startsWith('es');
+    for (final l in locales) {
+      final id = l.localeId.replaceAll('-', '_').toLowerCase();
+      if (id == 'es_mx') return l.localeId;
+    }
+    for (final l in locales) {
+      if (isEs(l.localeId)) return l.localeId;
+    }
+    return null;
+  }
+
   Future<void> _listen() async {
     if (!_active || !mounted || _speech.isListening) return;
-    await _speech.listen(onResult: _onResult);
+    await _speech.listen(
+      onResult: _onResult,
+      listenOptions: SpeechListenOptions(localeId: _localeId),
+    );
   }
 
   void _onStatus(String status) {
