@@ -51,10 +51,15 @@ class BillingApi {
     required int months,
     required int count,
   }) async {
+    // El secreto va en el cuerpo (JSON admite cualquier carácter), no en un header.
     final r = await _dio.post(
       '/billing/admin/keys',
-      data: {'plan': plan, 'months': months, 'count': count},
-      options: Options(headers: {'X-Admin-Secret': adminSecret}),
+      data: {
+        'plan': plan,
+        'months': months,
+        'count': count,
+        'admin_secret': adminSecret,
+      },
     );
     return (r.data['codes'] as List).map((e) => e.toString()).toList();
   }

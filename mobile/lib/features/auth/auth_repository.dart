@@ -52,9 +52,10 @@ class AuthRepository {
     await _dio.post('/auth/admin/bootstrap', data: {'secret': secret});
   }
 
-  /// Restablece la contraseña de una cuenta. Requiere el secreto de administrador
-  /// (se envía en el header X-Admin-Secret; el servidor lo valida contra
-  /// LICENSE_ADMIN_SECRET). Pensado para recuperar el acceso de un cliente.
+  /// Restablece la contraseña de una cuenta. Requiere el secreto de administrador,
+  /// que se envía en el CUERPO (JSON admite cualquier carácter: acentos, ñ, emojis…).
+  /// Antes iba en un header HTTP, que no admite no-ASCII y hacía fallar la petición.
+  /// Pensado para recuperar el acceso de un cliente.
   Future<void> resetPassword({
     required String companySlug,
     required String email,
@@ -67,8 +68,8 @@ class AuthRepository {
         'company_slug': companySlug,
         'email': email,
         'new_password': newPassword,
+        'admin_secret': adminSecret,
       },
-      options: Options(headers: {'X-Admin-Secret': adminSecret}),
     );
   }
 
