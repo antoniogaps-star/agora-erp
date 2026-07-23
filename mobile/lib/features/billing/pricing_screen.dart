@@ -137,8 +137,7 @@ class PricingScreen extends StatelessWidget {
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Oferta de lanzamiento: precio especial para los primeros 100 clientes '
-                    '(durante los primeros 12 meses).',
+                    'Oferta de lanzamiento: precio especial para los primeros 100 clientes.',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),

@@ -32,7 +32,8 @@ class _QuickLoginScreenState extends ConsumerState<QuickLoginScreen> {
   }
 
   Future<void> _entrar() async {
-    if (_password.text.isEmpty) {
+    final password = _password.text.trim(); // mismo recorte que en el registro
+    if (password.isEmpty) {
       setState(() => _error = 'Escribe tu contraseña.');
       return;
     }
@@ -44,7 +45,7 @@ class _QuickLoginScreenState extends ConsumerState<QuickLoginScreen> {
       await ref.read(authControllerProvider.notifier).login(
             companySlug: slugify(widget.company),
             email: widget.email,
-            password: _password.text,
+            password: password,
           );
       // Éxito: el AuthGate cambia a la app.
     } catch (e) {
@@ -106,7 +107,29 @@ class _QuickLoginScreenState extends ConsumerState<QuickLoginScreen> {
                     color: const Color(0xFFFEE2E2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(_error!, style: const TextStyle(color: Color(0xFFB91C1C))),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_error!, style: const TextStyle(color: Color(0xFFB91C1C))),
+                      const SizedBox(height: 8),
+                      // Si no logra entrar, la vía segura para recuperar el acceso es
+                      // ponerle una nueva contraseña (con el secreto de administrador).
+                      FilledButton.icon(
+                        onPressed: _loading
+                            ? null
+                            : () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => ResetPasswordScreen(
+                                      initialCompany: widget.company,
+                                      initialEmail: widget.email,
+                                    ),
+                                  ),
+                                ),
+                        icon: const Icon(Icons.lock_reset),
+                        label: const Text('Restablecer contraseña y entrar'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
               const SizedBox(height: 20),

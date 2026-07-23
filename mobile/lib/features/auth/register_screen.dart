@@ -35,7 +35,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _submit() async {
     final name = _companyName.text.trim();
     final email = _email.text.trim().toLowerCase();
-    final password = _password.text;
+    // Se recorta la contraseña (igual que al entrar) para que un espacio invisible que
+    // agregue el teclado no cause un "no coincide" al iniciar sesión después.
+    final password = _password.text.trim();
     final companySlug = slugify(name);
 
     // Validación amigable antes de llamar al servidor.

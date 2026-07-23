@@ -52,7 +52,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     final company = _company.text.trim();
     final email = _email.text.trim().toLowerCase();
-    if (company.isEmpty || email.isEmpty || _password.text.isEmpty) {
+    final password = _password.text.trim(); // mismo recorte que en el registro
+    if (company.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() => _error = 'Llena empresa, correo y contraseña.');
       return;
     }
@@ -67,7 +68,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(authControllerProvider.notifier).login(
             companySlug: slugify(company),
             email: email,
-            password: _password.text,
+            password: password,
           );
       await store.saveLastLogin(company, email);
       // Éxito: el AuthGate cambia a la app; esta pantalla se cierra sola.
