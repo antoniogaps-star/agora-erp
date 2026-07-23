@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { logout as logoutApi } from "@/features/auth/api";
 import { fetchMe } from "@/features/dashboard/api";
 import { useAuthStore } from "@/shared/auth/store";
+import { useSubscriptionStore } from "@/shared/billing/subscription";
 
 const LINKS = [
   { to: "/", label: "Dashboard", end: true },
@@ -20,6 +21,8 @@ export function AppLayout() {
   const navigate = useNavigate();
   const clear = useAuthStore((s) => s.clear);
   const me = useQuery({ queryKey: ["me"], queryFn: fetchMe });
+  const subExpired = useSubscriptionStore((s) => s.message);
+  const clearSub = useSubscriptionStore((s) => s.clear);
 
   async function logout() {
     const refresh = useAuthStore.getState().refreshToken;
@@ -57,6 +60,30 @@ export function AppLayout() {
           </button>
         </div>
       </nav>
+      {subExpired && (
+        <div
+          role="alert"
+          style={{
+            background: "#fff7e6",
+            borderBottom: "1px solid #f59e0b",
+            color: "#92400e",
+            padding: "0.6rem 1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+          }}
+        >
+          <span style={{ flex: 1 }}>⚠️ {subExpired}</span>
+          <button
+            type="button"
+            className="linkbtn"
+            onClick={clearSub}
+            aria-label="Cerrar aviso"
+          >
+            Entendido
+          </button>
+        </div>
+      )}
       <main className="content">
         <Outlet />
       </main>

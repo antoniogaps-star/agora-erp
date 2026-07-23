@@ -2,6 +2,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 import { config } from "@/lib/config";
 import { useAuthStore } from "@/shared/auth/store";
+import { useSubscriptionStore } from "@/shared/billing/subscription";
 
 /** Cliente HTTP con inyección del bearer y refresco automático ante 401. */
 export const api = axios.create({
@@ -39,6 +40,18 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const original = error.config as RetriableConfig | undefined;
     const { refreshToken, clear } = useAuthStore.getState();
+
+    // Suscripción vencida: el backend rechaza las escrituras con 402. Se avisa una vez de
+    // forma global (banner en el layout); la lectura sigue funcionando.
+    if (error.response?.status === 402) {
+      const data = error.response.data as { error?: { message?: string } } | undefined;
+      useSubscriptionStore
+        .getState()
+        .setExpired(
+          data?.error?.message ??
+            "Tu prueba o plan venció. Canjea una clave de activación para reactivar.",
+        );
+    }
 
     if (error.response?.status === 401 && original && !original._retried && refreshToken) {
       original._retried = true;
