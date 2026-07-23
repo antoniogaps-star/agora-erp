@@ -3,6 +3,17 @@ import 'package:drift/drift.dart';
 
 import '../local/database.dart';
 
+/// El servidor rechazó la subida (HTTP 402) porque la prueba gratis o el plan de pago
+/// venció. Los cambios locales quedan intactos (siguen `isDirty`) y se subirán en cuanto
+/// se reactive la cuenta con una clave. La UI la distingue de un fallo de red para mostrar
+/// "renueva tu plan" en vez de "sin conexión".
+class SubscriptionExpiredException implements Exception {
+  const SubscriptionExpiredException(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
 /// Motor de sincronización (patrón outbox). Sube los cambios locales pendientes de las
 /// tres entidades y aplica los del servidor. Ver docs/07_App_Movil.md y ADR-005.
 class SyncService {
@@ -63,7 +74,21 @@ class SyncService {
 
     if (changes.isEmpty) return;
 
-    final response = await _dio.post('/sync/push', data: {'changes': changes});
+    final Response<dynamic> response;
+    try {
+      response = await _dio.post('/sync/push', data: {'changes': changes});
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 402) {
+        final data = e.response?.data;
+        final msg = data is Map
+            ? (data['error'] is Map ? data['error']['message'] as String? : null)
+            : null;
+        throw SubscriptionExpiredException(
+          msg ?? 'Tu prueba o plan venció. Renueva para volver a sincronizar.',
+        );
+      }
+      rethrow;
+    }
     final results = (response.data['results'] as List).cast<Map<String, dynamic>>();
 
     for (final r in results) {

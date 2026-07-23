@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../data/sync/sync_service.dart';
 import '../billing/pricing_screen.dart';
 import '../customers/customers_tab.dart';
 import '../inventory/inventory_tab.dart';
@@ -34,6 +35,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ref.invalidate(productsProvider);
       ref.invalidate(customersProvider);
       messenger.showSnackBar(const SnackBar(content: Text('Sincronización completa')));
+    } on SubscriptionExpiredException catch (e) {
+      // Vencimiento: los datos locales quedan a salvo; solo hay que renovar para subirlos.
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          duration: const Duration(seconds: 6),
+          action: SnackBarAction(
+            label: 'Renovar',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const PricingScreen()),
+            ),
+          ),
+        ),
+      );
     } catch (_) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Sin conexión: se sincronizará luego')),
