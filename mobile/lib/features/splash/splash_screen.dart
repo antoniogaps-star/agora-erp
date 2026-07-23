@@ -49,7 +49,7 @@ class _Tagline extends StatelessWidget {
           TextSpan(text: ', ', style: TextStyle(color: Colors.white70)),
           TextSpan(text: 'vendes', style: TextStyle(color: Colors.white)),
           TextSpan(text: ', ', style: TextStyle(color: Colors.white70)),
-          TextSpan(text: 'ganas', style: TextStyle(color: Color(0xFF22C55E))),
+          TextSpan(text: 'GANAS', style: TextStyle(color: Color(0xFF22C55E))),
         ],
       ),
       textAlign: TextAlign.center,
