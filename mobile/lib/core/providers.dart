@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/local/database.dart';
 import '../data/sync/sync_service.dart';
 import '../features/auth/auth_repository.dart';
+import '../features/accounting/accounting_repository.dart';
 import '../features/customers/customers_repository.dart';
 import '../features/inventory/inventory_repository.dart';
 import '../features/reports/reports_repository.dart';
@@ -72,6 +73,18 @@ final reportsRepositoryProvider = Provider<ReportsRepository>(
 /// Reportes calculados de la base local. Se invalida tras cada venta y sincronización.
 final reportsProvider = FutureProvider.autoDispose<ReportData>(
   (ref) => ref.watch(reportsRepositoryProvider).load(),
+);
+
+final accountingRepositoryProvider = Provider<AccountingRepository>(
+  (ref) => AccountingRepository(
+    ref.watch(databaseProvider),
+    ref.watch(authRepositoryProvider).currentTenantId,
+  ),
+);
+
+/// Asientos contables locales. Se invalida tras cada alta/baja y sincronización.
+final ledgerProvider = FutureProvider.autoDispose<List<LedgerEntry>>(
+  (ref) => ref.watch(accountingRepositoryProvider).list(),
 );
 
 /// Cuenta recordada en este equipo (empresa + correo con los que se entró antes).

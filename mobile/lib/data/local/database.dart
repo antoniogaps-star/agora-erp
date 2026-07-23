@@ -67,7 +67,22 @@ class Customers extends Table with _SyncColumns {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Products, StockMovements, Sales, Customers])
+/// Asiento contable (ingreso/egreso). Se sincroniza con last-write-wins (permite
+/// corregir/borrar). `occurredOn` se guarda como fecha ISO 'YYYY-MM-DD' para calzar con
+/// el backend.
+class LedgerEntries extends Table with _SyncColumns {
+  TextColumn get id => text()();
+  TextColumn get tenantId => text()();
+  TextColumn get entryType => text()(); // 'income' | 'expense'
+  TextColumn get concept => text()();
+  IntColumn get amountCents => integer()();
+  TextColumn get occurredOn => text()(); // 'YYYY-MM-DD'
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [Products, StockMovements, Sales, Customers, LedgerEntries])
 class AppDatabase extends _$AppDatabase {
   /// Constructor genérico. Sin executor usa una base en memoria (útil en tests).
   AppDatabase([QueryExecutor? executor]) : super(executor ?? NativeDatabase.memory());
@@ -76,13 +91,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.encrypted(SecureStore store) : super(_openEncrypted(store));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await m.createTable(customers); // v2: módulo de clientes
+          }
+          if (from < 3) {
+            await m.createTable(ledgerEntries); // v3: contabilidad
           }
         },
       );
@@ -120,6 +138,15 @@ class AppDatabase extends _$AppDatabase {
         ..orderBy([(c) => OrderingTerm(expression: c.name)]))
       .get();
 
+  /// Asientos contables vigentes, más recientes primero (por fecha, luego por registro).
+  Future<List<LedgerEntry>> activeLedger() => (select(ledgerEntries)
+        ..where((e) => e.isDeleted.equals(false))
+        ..orderBy([
+          (e) => OrderingTerm(expression: e.occurredOn, mode: OrderingMode.desc),
+          (e) => OrderingTerm(expression: e.updatedAt, mode: OrderingMode.desc),
+        ]))
+      .get();
+
   Future<List<Product>> dirtyProducts() =>
       (select(products)..where((p) => p.isDirty.equals(true))).get();
   Future<List<StockMovement>> dirtyMovements() =>
@@ -128,6 +155,8 @@ class AppDatabase extends _$AppDatabase {
       (select(sales)..where((s) => s.isDirty.equals(true))).get();
   Future<List<Customer>> dirtyCustomers() =>
       (select(customers)..where((c) => c.isDirty.equals(true))).get();
+  Future<List<LedgerEntry>> dirtyLedger() =>
+      (select(ledgerEntries)..where((e) => e.isDirty.equals(true))).get();
 
   Future<void> markProductSynced(String id) =>
       (update(products)..where((p) => p.id.equals(id)))
@@ -141,6 +170,9 @@ class AppDatabase extends _$AppDatabase {
   Future<void> markCustomerSynced(String id) =>
       (update(customers)..where((c) => c.id.equals(id)))
           .write(const CustomersCompanion(isDirty: Value(false)));
+  Future<void> markLedgerSynced(String id) =>
+      (update(ledgerEntries)..where((e) => e.id.equals(id)))
+          .write(const LedgerEntriesCompanion(isDirty: Value(false)));
 }
 
 /// Abre la base local CIFRADA con SQLCipher (ADR-004). La llave se aplica con

@@ -61,3 +61,45 @@ async def test_pull_devuelve_cursor() -> None:
     body = r.json()
     assert body["changes"] == []
     assert isinstance(body["cursor"], str)
+
+
+async def test_ledger_entry_push_y_pull() -> None:
+    """Un asiento contable creado en el móvil (sync push) llega al servidor y se puede
+    recuperar por pull (así aparece también en el panel web)."""
+    async with await _client() as client:
+        token = await _token(client)
+        auth = {"Authorization": f"Bearer {token}"}
+        push = await client.post(
+            "/api/v1/sync/push",
+            headers=auth,
+            json={
+                "changes": [
+                    {
+                        "entity": "ledger_entry",
+                        "id": "019f6868-9a2c-75b7-8cf1-36e2316aed99",
+                        "op": "upsert",
+                        "version": 1,
+                        "updated_at": "2026-07-23T10:00:00Z",
+                        "data": {
+                            "entry_type": "expense",
+                            "concept": "Renta del local",
+                            "amount_cents": 350000,
+                            "occurred_on": "2026-07-23",
+                        },
+                    }
+                ]
+            },
+        )
+        assert push.status_code == 200, push.text
+        assert push.json()["results"][0]["status"] == "applied"
+
+        pull = await client.get("/api/v1/sync/pull", headers=auth)
+    assert pull.status_code == 200
+    entries = [c for c in pull.json()["changes"] if c["entity"] == "ledger_entry"]
+    assert len(entries) == 1
+    assert entries[0]["data"] == {
+        "entry_type": "expense",
+        "concept": "Renta del local",
+        "amount_cents": 350000,
+        "occurred_on": "2026-07-23",
+    }

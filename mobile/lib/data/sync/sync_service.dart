@@ -27,6 +27,7 @@ class SyncService {
     final movements = await _db.dirtyMovements();
     final sales = await _db.dirtySales();
     final customers = await _db.dirtyCustomers();
+    final ledger = await _db.dirtyLedger();
 
     final changes = <Map<String, dynamic>>[
       for (final p in products)
@@ -70,6 +71,20 @@ class SyncService {
           'updated_at': c.updatedAt.toUtc().toIso8601String(),
           'data': {'name': c.name, 'email': c.email, 'phone': c.phone},
         },
+      for (final e in ledger)
+        {
+          'entity': 'ledger_entry',
+          'id': e.id,
+          'op': e.isDeleted ? 'delete' : 'upsert',
+          'version': e.version,
+          'updated_at': e.updatedAt.toUtc().toIso8601String(),
+          'data': {
+            'entry_type': e.entryType,
+            'concept': e.concept,
+            'amount_cents': e.amountCents,
+            'occurred_on': e.occurredOn,
+          },
+        },
     ];
 
     if (changes.isEmpty) return;
@@ -103,6 +118,8 @@ class SyncService {
           await _db.markSaleSynced(id);
         case 'customer':
           await _db.markCustomerSynced(id);
+        case 'ledger_entry':
+          await _db.markLedgerSynced(id);
       }
     }
   }
@@ -161,6 +178,19 @@ class SyncService {
                 name: data['name'] as String? ?? '',
                 email: Value(data['email'] as String?),
                 phone: Value(data['phone'] as String?),
+                isDeleted: Value(change['op'] == 'delete'),
+                isDirty: const Value(false),
+              ),
+            );
+      case 'ledger_entry':
+        await _db.into(_db.ledgerEntries).insertOnConflictUpdate(
+              LedgerEntriesCompanion.insert(
+                id: id,
+                tenantId: change['tenant_id'] as String? ?? '',
+                entryType: data['entry_type'] as String? ?? 'income',
+                concept: data['concept'] as String? ?? '',
+                amountCents: data['amount_cents'] as int? ?? 0,
+                occurredOn: data['occurred_on'] as String? ?? '',
                 isDeleted: Value(change['op'] == 'delete'),
                 isDirty: const Value(false),
               ),

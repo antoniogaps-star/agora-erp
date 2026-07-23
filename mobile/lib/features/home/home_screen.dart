@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../data/sync/sync_service.dart';
+import '../accounting/accounting_tab.dart';
 import '../billing/pricing_screen.dart';
 import '../customers/customers_tab.dart';
 import '../inventory/inventory_tab.dart';
@@ -36,6 +37,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ref.invalidate(productsProvider);
       ref.invalidate(customersProvider);
       ref.invalidate(reportsProvider);
+      ref.invalidate(ledgerProvider);
       messenger.showSnackBar(const SnackBar(content: Text('Sincronización completa')));
     } on SubscriptionExpiredException catch (e) {
       // Vencimiento: los datos locales quedan a salvo; solo hay que renovar para subirlos.
@@ -72,7 +74,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isDemo = ref.watch(authControllerProvider).valueOrNull == SessionKind.demo;
     return Scaffold(
       appBar: AppBar(
-        title: Text(switch (_tab) { 0 => 'Inventario', 1 => 'Clientes', _ => 'Reportes' }),
+        title: Text(switch (_tab) {
+          0 => 'Inventario',
+          1 => 'Clientes',
+          2 => 'Reportes',
+          _ => 'Caja',
+        }),
         actions: [
           IconButton(
             icon: const Icon(Icons.workspace_premium),
@@ -100,7 +107,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Expanded(
             child: IndexedStack(
               index: _tab,
-              children: const [InventoryTab(), CustomersTab(), ReportsTab()],
+              children: const [InventoryTab(), CustomersTab(), ReportsTab(), AccountingTab()],
             ),
           ),
         ],
@@ -112,6 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           NavigationDestination(icon: Icon(Icons.inventory_2_outlined), label: 'Inventario'),
           NavigationDestination(icon: Icon(Icons.people_outline), label: 'Clientes'),
           NavigationDestination(icon: Icon(Icons.bar_chart_outlined), label: 'Reportes'),
+          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Caja'),
         ],
       ),
     );
