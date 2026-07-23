@@ -45,6 +45,28 @@ export function LandingPage() {
           7 días gratis. Si Android lo pide, permite instalar de orígenes desconocidos.
         </p>
 
+        <div
+          style={{
+            display: "inline-flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.4rem",
+            background: "#fff",
+            borderRadius: "16px",
+            padding: "12px 12px 8px",
+            marginTop: "0.5rem",
+          }}
+        >
+          <img
+            src="/qr-app.png"
+            alt="Código QR para descargar Ágora ERP"
+            style={{ width: "160px", height: "160px", display: "block" }}
+          />
+          <span style={{ color: "#0f172a", fontSize: "0.85rem", fontWeight: 600 }}>
+            📷 Escanea para descargar
+          </span>
+        </div>
+
         <p style={{ marginTop: "0.75rem", fontSize: "0.9rem" }}>
           <Link to="/register" style={{ color: "#93c5fd" }}>
             ¿Prefieres la computadora? Usa el panel web
