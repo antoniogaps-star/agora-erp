@@ -4,6 +4,10 @@ import { Link } from "react-router-dom";
 const APK_URL =
   "https://github.com/antoniogaps-star/agora-erp/releases/latest/download/agora-erp.apk";
 
+/** La app descargable es solo Android; iPhone/computadora usan el panel web. */
+const isIOS =
+  typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
 /** Página pública de venta (landing). Se comparte con prospectos para su prueba gratis. */
 export function LandingPage() {
   return (
@@ -24,25 +28,55 @@ export function LandingPage() {
           Funciona sin internet y lo controlas todo desde el celular o la computadora.
         </p>
 
-        <div className="landing-cta">
+        {isIOS && (
+          <p
+            style={{
+              background: "#1e293b",
+              color: "#fde68a",
+              borderRadius: "10px",
+              padding: "0.6rem 0.9rem",
+              maxWidth: "480px",
+              margin: "0.25rem auto 0",
+              fontSize: "0.9rem",
+            }}
+          >
+            🍎 En iPhone, Ágora se usa en el navegador (la app descargable es para Android).
+          </p>
+        )}
+
+        <div className="landing-cta" style={{ flexWrap: "wrap", gap: "0.6rem" }}>
           <a
             href={APK_URL}
             className="landing-btn"
             style={{
-              background: "#22C55E",
-              color: "#04210F",
+              background: isIOS ? "#334155" : "#22C55E",
+              color: isIOS ? "#e2e8f0" : "#04210F",
               fontWeight: 700,
               display: "inline-flex",
               alignItems: "center",
               gap: "0.5rem",
+              order: isIOS ? 2 : 1,
             }}
           >
-            📲 Descargar la app · Prueba gratis 7 días
+            📲 Descargar la app (Android)
           </a>
+          <Link
+            to="/register"
+            className="landing-btn"
+            style={{
+              background: isIOS ? "#22C55E" : "#2F6DF6",
+              color: isIOS ? "#04210F" : "#fff",
+              fontWeight: 700,
+              order: isIOS ? 1 : 2,
+            }}
+          >
+            🍎💻 Usar en el navegador (iPhone/PC)
+          </Link>
         </div>
         <p className="landing-note" style={{ color: "#94a3b8" }}>
-          Para Android. Sin tarjeta. Al abrirla, toca <strong>"Crear empresa"</strong> y tienes
-          7 días gratis. Si Android lo pide, permite instalar de orígenes desconocidos.
+          Prueba <strong>7 días gratis</strong>, sin tarjeta. En Android, al abrir la app toca
+          <strong> "Crear empresa"</strong> (si lo pide, permite instalar de orígenes
+          desconocidos). En iPhone o computadora, crea tu cuenta en el navegador.
         </p>
 
         <div
@@ -63,15 +97,9 @@ export function LandingPage() {
             style={{ width: "160px", height: "160px", display: "block" }}
           />
           <span style={{ color: "#0f172a", fontSize: "0.85rem", fontWeight: 600 }}>
-            📷 Escanea para descargar
+            📷 Escanea para descargar (Android)
           </span>
         </div>
-
-        <p style={{ marginTop: "0.75rem", fontSize: "0.9rem" }}>
-          <Link to="/register" style={{ color: "#93c5fd" }}>
-            ¿Prefieres la computadora? Usa el panel web
-          </Link>
-        </p>
       </header>
 
       <section className="landing-features">
@@ -107,8 +135,15 @@ export function LandingPage() {
           className="landing-btn"
           style={{ background: "#22C55E", color: "#04210F", fontWeight: 700 }}
         >
-          📲 Descargar y probar gratis
+          📲 Descargar (Android)
         </a>
+        <Link
+          to="/register"
+          className="landing-btn"
+          style={{ background: "#2F6DF6", color: "#fff", fontWeight: 700, marginLeft: "0.5rem" }}
+        >
+          🍎💻 En el navegador
+        </Link>
         <p>Ágora ERP · Dictas, vendes, GANAS</p>
       </footer>
     </div>
