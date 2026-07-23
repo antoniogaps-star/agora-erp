@@ -40,7 +40,9 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
-      - run: flutter build apk --release --dart-define=API_URL=${{ env.API_URL }}
+      # build-number = número de corrida → versionCode ÚNICO y creciente, para que
+      # Android reconozca cada APK como más nuevo y no instale por error uno anterior.
+      - run: flutter build apk --release --dart-define=API_URL=${{ env.API_URL }} --build-name=1.0.${{ github.run_number }} --build-number=${{ github.run_number }}
       - name: Renombrar APK
         run: cp build/app/outputs/flutter-apk/app-release.apk agora-erp.apk
       - name: Publicar Release con el APK
@@ -49,7 +51,13 @@ jobs:
           tag_name: apk-${{ github.run_number }}
           name: "Ágora ERP móvil (build ${{ github.run_number }})"
           body: |
-            APK de Ágora ERP apuntando a: `${{ env.API_URL }}`
+            **Versión 1.0.${{ github.run_number }}** · APK apuntando a: `${{ env.API_URL }}`
+
+            👉 Descarga siempre la MÁS RECIENTE aquí:
+            https://github.com/antoniogaps-star/agora-erp/releases/latest
+
             Instalación: descarga `agora-erp.apk` en el teléfono y ábrelo
             (permite "instalar apps de origen desconocido" si Android lo pide).
+            Si te dice que ya está instalada o no actualiza, desinstala la app y
+            vuelve a instalar este APK.
           files: mobile/agora-erp.apk
