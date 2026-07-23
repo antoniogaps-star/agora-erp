@@ -99,7 +99,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           );
       await ref.read(secureStoreProvider).saveLastLogin(company, email);
       ref.invalidate(savedAccountProvider);
-      // El AuthGate cambia a la app; esta pantalla se cierra sola.
+      // El AuthGate ya muestra la app POR DEBAJO, pero esta pantalla se abrió con
+      // Navigator.push y no se cierra sola: hay que quitarla (y las que estén encima)
+      // para que quede a la vista el inventario. Sin esto, el usuario queda logueado
+      // pero mirando una pantalla de login/reset que ya no aplica.
+      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (mounted) setState(() => _error = _mapError(e));
     } finally {

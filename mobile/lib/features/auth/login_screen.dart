@@ -71,7 +71,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password: password,
           );
       await store.saveLastLogin(company, email);
-      // Éxito: el AuthGate cambia a la app; esta pantalla se cierra sola.
+      // Esta pantalla se abre con Navigator.push (desde la entrada rápida o el registro),
+      // así que no se cierra sola cuando el AuthGate cambia a la app por debajo: hay que
+      // quitarla para que quede a la vista el inventario.
+      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (error) {
       if (mounted) {
         setState(() => _error = authErrorMessage(error, isRegister: false));

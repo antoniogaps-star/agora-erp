@@ -70,6 +70,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // (pantalla verde "Entrar") y el AuthGate mostrará la app.
       await store.saveLastLogin(name, email);
       ref.invalidate(savedAccountProvider);
+      // Si esta pantalla se abrió empujada (desde "Entrar"), no se cierra sola cuando el
+      // AuthGate cambia a la app por debajo; se quita para dejar a la vista el inventario.
+      // Si es la pantalla inicial (raíz), popUntil no hace nada: seguro en ambos casos.
+      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (mounted) setState(() => _error = authErrorMessage(e, isRegister: true));
     } finally {
