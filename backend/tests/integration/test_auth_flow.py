@@ -62,6 +62,32 @@ async def test_login_credenciales_invalidas() -> None:
     assert bad.json()["error"]["code"] == "INVALID_CREDENTIALS"
 
 
+async def test_login_password_corto_da_401_no_422() -> None:
+    """Al ENTRAR no se valida la longitud de la contraseña. Un password corto (un typo)
+    debe caer en 401 'Credenciales inválidas' —el mensaje correcto en la pantalla de
+    entrada— y NO en un 422 de validación que confundiría al usuario."""
+    async with await _client() as client:
+        await client.post(
+            "/api/v1/auth/register",
+            json={
+                "company_name": "Cortito",
+                "company_slug": "cortito",
+                "email": "dueno@cortito.com",
+                "password": "password123",
+            },
+        )
+        r = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "company_slug": "cortito",
+                "email": "dueno@cortito.com",
+                "password": "corta",  # < 8 caracteres
+            },
+        )
+    assert r.status_code == 401
+    assert r.json()["error"]["code"] == "INVALID_CREDENTIALS"
+
+
 async def test_reset_password_por_admin() -> None:
     """El dueño (con el secreto de admin) restablece la contraseña de una cuenta que
     olvidó su clave, y luego se puede entrar con la nueva."""

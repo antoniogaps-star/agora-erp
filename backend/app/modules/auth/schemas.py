@@ -18,7 +18,11 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     company_slug: Slug
     email: EmailStr
-    password: Password
+    # Al ENTRAR no se valida la longitud de la contraseña: esa regla es del registro.
+    # Así un password corto (un typo) cae en 401 "Credenciales inválidas" —el mensaje
+    # correcto— en vez de un 422 que en la pantalla verde se traduce a un aviso sobre
+    # el nombre de empresa/correo que ahí ni siquiera se muestran.
+    password: Annotated[str, Field(min_length=1, max_length=128)]
 
 
 class ResetPasswordRequest(BaseModel):
