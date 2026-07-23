@@ -29,6 +29,10 @@ class ResetPasswordRequest(BaseModel):
     company_slug: Slug
     email: EmailStr
     new_password: Password
+    # El secreto de administrador se acepta en el CUERPO (JSON admite cualquier carácter:
+    # acentos, ñ, emojis…). Un header HTTP no los admite y rompía la petición en el cliente.
+    # Se mantiene además el header X-Admin-Secret como respaldo para apps antiguas.
+    admin_secret: str | None = None
 
 
 class AdminBootstrapRequest(BaseModel):

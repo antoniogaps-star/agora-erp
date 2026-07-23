@@ -154,6 +154,51 @@ async def test_reset_password_por_admin() -> None:
         settings.license_admin_secret = old_secret
 
 
+async def test_reset_password_con_secreto_en_el_cuerpo() -> None:
+    """El secreto de admin se puede mandar en el CUERPO (admin_secret), sin header.
+
+    Un header HTTP no admite caracteres no-ASCII (acentos, ñ, emojis) y rompía la
+    petición en el cliente; el cuerpo JSON sí los admite. Aquí el secreto lleva una ñ y
+    un acento para cubrir justamente ese caso."""
+    creds = {
+        "company_name": "Piñatería Ñoño",
+        "company_slug": "pinateria",
+        "email": "dueno@pinateria.com",
+        "password": "vieja12345",
+    }
+    old_secret = settings.license_admin_secret
+    settings.license_admin_secret = "señór-piñata-café"  # no-ASCII a propósito
+    try:
+        async with await _client() as client:
+            reg = await client.post("/api/v1/auth/register", json=creds)
+            assert reg.status_code == 201, reg.text
+
+            # Secreto correcto EN EL CUERPO (sin header): restablece.
+            r = await client.post(
+                "/api/v1/auth/reset-password",
+                json={
+                    "company_slug": creds["company_slug"],
+                    "email": creds["email"],
+                    "new_password": "nueva12345",
+                    "admin_secret": "señór-piñata-café",
+                },
+            )
+            assert r.status_code == 204, r.text
+
+            # Entra con la nueva contraseña.
+            new = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "company_slug": creds["company_slug"],
+                    "email": creds["email"],
+                    "password": "nueva12345",
+                },
+            )
+            assert new.status_code == 200, new.text
+    finally:
+        settings.license_admin_secret = old_secret
+
+
 async def test_bootstrap_admin_desde_la_app() -> None:
     """Sin variable de entorno, el dueño configura el secreto DESDE LA APP y con él
     puede restablecer contraseñas. Un segundo bootstrap se rechaza (409)."""

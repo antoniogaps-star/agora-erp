@@ -73,13 +73,16 @@ async def reset_password(
 ) -> None:
     """Restablece la contraseña de una cuenta. Requiere el secreto de administrador
     (variable de entorno o el configurado desde la app). Pensado para que el dueño
-    recupere el acceso de un cliente que olvidó su contraseña."""
+    recupere el acceso de un cliente que olvidó su contraseña.
+
+    El secreto puede venir en el cuerpo (`admin_secret`, recomendado) o en el header
+    `X-Admin-Secret` (compatibilidad). El cuerpo tiene prioridad."""
     await service.reset_password(
         session,
         company_slug=data.company_slug,
         email=data.email,
         new_password=data.new_password,
-        provided_secret=x_admin_secret,
+        provided_secret=data.admin_secret or x_admin_secret,
     )
 
 
