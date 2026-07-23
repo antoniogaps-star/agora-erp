@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#2F6DF6</color>
+    <color name="ic_launcher_background">#000214</color>
+    <!-- Fondo del splash de Ágora ERP (azul marino del logo). Evita el destello blanco
+         mientras arranca la app, antes de que Flutter pinte el primer frame. -->
+    <color name="splash_bg">#FF000214</color>
 </resources>

@@ -1,0 +1,11 @@
+Guarda aquí el logo nuevo de Ágora ERP (la A con micrófono y "Dictas, vendes, ganas").
+
+- Nombre del archivo: logo.png
+- Formato: PNG (idealmente cuadrado, 1024x1024 o más, con el fondo azul marino oscuro que ya trae).
+- Ruta completa:
+  C:\Users\HP\OneDrive\Desktop\AGORA ERP\mobile\assets\branding\logo.png
+
+Cuando el archivo logo.png esté aquí, avísale a Claude ("ya puse el logo") para
+armar la pantalla de bienvenida (splash) de la app con él.
+
+Este .txt se puede borrar después.

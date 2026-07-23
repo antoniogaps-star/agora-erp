@@ -5,6 +5,7 @@ import 'core/providers.dart';
 import 'features/auth/quick_login_screen.dart';
 import 'features/auth/register_screen.dart';
 import 'features/home/home_screen.dart';
+import 'features/splash/splash_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: AgoraApp()));
@@ -18,8 +19,34 @@ class AgoraApp extends StatelessWidget {
     return MaterialApp(
       title: 'Ágora ERP',
       theme: ThemeData(colorSchemeSeed: const Color(0xFF2F6DF6), useMaterial3: true),
-      home: const _AuthGate(),
+      home: const _RootGate(),
     );
+  }
+}
+
+/// Muestra la pantalla de bienvenida (splash) un instante al abrir y luego cede el
+/// paso al AuthGate, que decide entre entrar, crear empresa o la app.
+class _RootGate extends StatefulWidget {
+  const _RootGate();
+
+  @override
+  State<_RootGate> createState() => _RootGateState();
+}
+
+class _RootGateState extends State<_RootGate> {
+  bool _showSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted) setState(() => _showSplash = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _showSplash ? const SplashScreen() : const _AuthGate();
   }
 }
 
