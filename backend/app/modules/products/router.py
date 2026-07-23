@@ -3,8 +3,9 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
+from app.modules.billing.deps import require_active_subscription
 from app.modules.products import service, voice_ai
 from app.modules.products.schemas import (
     ProductCreate,
@@ -15,7 +16,11 @@ from app.modules.products.schemas import (
 )
 from app.shared.deps import Claims, TenantSession
 
-router = APIRouter(prefix="/products", tags=["products"])
+router = APIRouter(
+    prefix="/products",
+    tags=["products"],
+    dependencies=[Depends(require_active_subscription)],
+)
 
 
 @router.get("", response_model=list[ProductRead])

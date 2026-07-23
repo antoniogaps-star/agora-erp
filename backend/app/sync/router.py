@@ -6,13 +6,18 @@ la sincronización queda aislada por empresa desde el diseño.
 
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.modules.billing.deps import require_active_subscription
 from app.shared.deps import Claims, TenantSession
 from app.sync import service
 from app.sync.schemas import PullResponse, PushRequest, PushResponse
 
-router = APIRouter(prefix="/sync", tags=["sync"])
+router = APIRouter(
+    prefix="/sync",
+    tags=["sync"],
+    dependencies=[Depends(require_active_subscription)],
+)
 
 
 @router.post("/push", response_model=PushResponse)

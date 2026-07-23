@@ -24,6 +24,23 @@ def businesses_allowed(plan: str) -> int:
     return _BUSINESSES.get(plan, 1)
 
 
+def _is_active(tenant: Tenant, now: datetime) -> bool:
+    """True si la cuenta puede seguir registrando: plan de pago vigente, o prueba dentro
+    de los primeros TRIAL_DAYS días. Suspendida/cancelada o vencida => False."""
+    if tenant.status == "active":
+        return tenant.plan_expires_at is None or tenant.plan_expires_at > now
+    if tenant.status == "trial":
+        return now < tenant.created_at + timedelta(days=TRIAL_DAYS)
+    return False
+
+
+async def is_tenant_active(session: AsyncSession, *, tenant_id: UUID) -> bool:
+    """¿El tenant tiene derecho a escribir? Fuente de verdad del bloqueo por vencimiento
+    (ver require_active_subscription). Un tenant inexistente cuenta como no activo."""
+    tenant = await session.get(Tenant, tenant_id)
+    return tenant is not None and _is_active(tenant, datetime.now(UTC))
+
+
 def _gen_code() -> str:
     def part() -> str:
         return "".join(secrets.choice(_ALPHABET) for _ in range(4))
@@ -38,10 +55,7 @@ async def get_status(session: AsyncSession, *, tenant_id: UUID) -> dict[str, obj
     now = datetime.now(UTC)
     trial_ends = tenant.created_at + timedelta(days=TRIAL_DAYS)
     in_trial = tenant.status == "trial"
-    if tenant.status == "active":
-        active = tenant.plan_expires_at is None or tenant.plan_expires_at > now
-    else:
-        active = in_trial and now < trial_ends
+    active = _is_active(tenant, now)
     return {
         "plan": tenant.plan,
         "status": tenant.status,

@@ -3,14 +3,19 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
+from app.modules.billing.deps import require_active_subscription
 from app.modules.invoices import service
 from app.modules.invoices.models import Invoice
 from app.modules.invoices.schemas import InvoiceCreate, InvoiceDetail, InvoiceRead
 from app.shared.deps import Claims, TenantSession
 
-router = APIRouter(prefix="/invoices", tags=["invoices"])
+router = APIRouter(
+    prefix="/invoices",
+    tags=["invoices"],
+    dependencies=[Depends(require_active_subscription)],
+)
 
 
 @router.get("", response_model=list[InvoiceRead])

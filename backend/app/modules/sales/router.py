@@ -2,14 +2,19 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
+from app.modules.billing.deps import require_active_subscription
 from app.modules.sales import service
 from app.modules.sales.models import Sale
 from app.modules.sales.schemas import SaleCreate, SaleRead
 from app.shared.deps import Claims, TenantSession
 
-router = APIRouter(prefix="/sales", tags=["sales"])
+router = APIRouter(
+    prefix="/sales",
+    tags=["sales"],
+    dependencies=[Depends(require_active_subscription)],
+)
 
 
 @router.get("", response_model=list[SaleRead])

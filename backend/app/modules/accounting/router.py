@@ -2,14 +2,19 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
 from app.modules.accounting import service
 from app.modules.accounting.models import LedgerEntry
 from app.modules.accounting.schemas import Balance, LedgerEntryCreate, LedgerEntryRead
+from app.modules.billing.deps import require_active_subscription
 from app.shared.deps import Claims, TenantSession
 
-router = APIRouter(prefix="/accounting", tags=["accounting"])
+router = APIRouter(
+    prefix="/accounting",
+    tags=["accounting"],
+    dependencies=[Depends(require_active_subscription)],
+)
 
 
 @router.get("/entries", response_model=list[LedgerEntryRead])

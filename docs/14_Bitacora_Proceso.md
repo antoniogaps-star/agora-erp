@@ -201,7 +201,12 @@ Historial reciente de builds del APK:
 - [ ] Poner `LICENSE_ADMIN_SECRET` en Render (para generar claves de activación).
 - [ ] Probar en el celular el build **apk-27** (entrada naranja/verde).
 - [ ] Probar los builds apk-25 (ventas) y apk-26 (monetización) en dispositivo real.
-- [ ] Aplicar el bloqueo real al terminar la prueba de 7 días (hoy es solo mensaje).
+- [x] Aplicar el bloqueo real al terminar la prueba de 7 días. **Hecho:** al vencer la
+      prueba (o el plan de pago) la cuenta entra en **solo-lectura**. Las escrituras
+      responden `402 SUBSCRIPTION_EXPIRED`; las lecturas y `billing/*` (para reactivar con
+      una clave) siguen abiertas. Reja centralizada en
+      `backend/app/modules/billing/deps.py` (`require_active_subscription`), colgada de los
+      routers de products/sales/customers/invoices/accounting y de `/sync/push`.
 
 ---
 
