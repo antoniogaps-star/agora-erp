@@ -82,10 +82,36 @@ El repo trae `railway.json` (apunta al Dockerfile del backend). Pasos:
 La app móvil se regenera apuntando al dominio: Actions → **APK Android → Run
 workflow** con `https://TU-DOMINIO.up.railway.app/api/v1`.
 
-## Notas de producción (pendientes)
+## Notas de producción
 
-- TLS/HTTPS delante de nginx (terminación en un balanceador o certbot).
-- Backups de la base de datos.
-- Rotación de secretos y del rol de aplicación.
+### Backups de la base de datos
+- Script: [`backend/scripts/backup_db.sh`](../backend/scripts/backup_db.sh). Genera un
+  volcado con marca de tiempo en formato *custom* (`pg_dump -Fc`, comprimido y restaurable
+  de forma selectiva) y conserva los 14 más recientes.
+  ```bash
+  DATABASE_URL="postgres://user:pass@host/db?sslmode=require" backend/scripts/backup_db.sh
+  ```
+- **Restaurar:**
+  ```bash
+  pg_restore --clean --if-exists --no-owner -d "$DATABASE_URL" backups/agora_XXXX.dump
+  ```
+- **Automatizar** (elige uno):
+  - *Neon* ya ofrece PITR/branching gestionado — actívalo en su panel como red de seguridad.
+  - *Cron* en un servidor propio: `0 3 * * *` corriendo el script (respaldo diario a las 3am).
+  - *GitHub Actions* con `schedule:` + un secret `DATABASE_URL`, subiendo el `.dump` como
+    artifact o a almacenamiento externo.
+
+### TLS / HTTPS
+- **Render y Vercel** ya sirven HTTPS con certificado gestionado (nada que hacer en la nube
+  actual). El backend en Render y el panel en Vercel están cifrados de origen.
+- Solo si se **autohospeda** detrás de nginx (ver `infra/web/nginx.conf`): terminar TLS con
+  Let's Encrypt/certbot o en un balanceador delante, y redirigir 80→443. Mantener
+  `usesCleartextTraffic` solo en desarrollo.
+
+### Rotación de secretos
+- `JWT_SECRET`: rotarlo invalida todos los tokens vivos (los usuarios reinician sesión).
+  Config exige que sea fuerte en `staging`/`production` (ver `core/config.py`).
+- Rotar la contraseña del rol de aplicación (`agora_app`) y del dueño de migraciones, y el
+  `LICENSE_ADMIN_SECRET`, periódicamente.
 
 Ver también: [09_Seguridad](09_Seguridad.md), [06_Backend](06_Backend.md).
