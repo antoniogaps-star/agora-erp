@@ -6,6 +6,7 @@ import '../../data/sync/sync_service.dart';
 import '../billing/pricing_screen.dart';
 import '../customers/customers_tab.dart';
 import '../inventory/inventory_tab.dart';
+import '../reports/reports_tab.dart';
 import '../sales/export_sales.dart';
 
 /// Shell principal tras iniciar sesión: pestañas de Inventario y Clientes,
@@ -34,6 +35,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       await sync.pull();
       ref.invalidate(productsProvider);
       ref.invalidate(customersProvider);
+      ref.invalidate(reportsProvider);
       messenger.showSnackBar(const SnackBar(content: Text('Sincronización completa')));
     } on SubscriptionExpiredException catch (e) {
       // Vencimiento: los datos locales quedan a salvo; solo hay que renovar para subirlos.
@@ -70,7 +72,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isDemo = ref.watch(authControllerProvider).valueOrNull == SessionKind.demo;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_tab == 0 ? 'Inventario' : 'Clientes'),
+        title: Text(switch (_tab) { 0 => 'Inventario', 1 => 'Clientes', _ => 'Reportes' }),
         actions: [
           IconButton(
             icon: const Icon(Icons.workspace_premium),
@@ -98,7 +100,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Expanded(
             child: IndexedStack(
               index: _tab,
-              children: const [InventoryTab(), CustomersTab()],
+              children: const [InventoryTab(), CustomersTab(), ReportsTab()],
             ),
           ),
         ],
@@ -109,6 +111,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.inventory_2_outlined), label: 'Inventario'),
           NavigationDestination(icon: Icon(Icons.people_outline), label: 'Clientes'),
+          NavigationDestination(icon: Icon(Icons.bar_chart_outlined), label: 'Reportes'),
         ],
       ),
     );

@@ -46,6 +46,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
       _name.clear();
       _pieces.clear();
       ref.invalidate(productsProvider);
+      ref.invalidate(reportsProvider);
       messenger.showSnackBar(SnackBar(content: Text('Agregado: $name · $pieces piezas')));
     } catch (error) {
       messenger.showSnackBar(SnackBar(content: Text('No se pudo agregar: $error')));
@@ -65,6 +66,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
     try {
       await repo.createProduct(name: result.name, priceCents: 0, initialStock: result.pieces);
       ref.invalidate(productsProvider);
+      ref.invalidate(reportsProvider);
       final note = result.note == null ? '' : ' (${result.note})';
       messenger.showSnackBar(SnackBar(
         duration: const Duration(seconds: 1),
@@ -105,6 +107,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
         MaterialPageRoute<void>(builder: (_) => TicketScreen(ticket: ticket)),
       );
       ref.invalidate(productsProvider);
+      ref.invalidate(reportsProvider);
     }
   }
 
@@ -161,6 +164,7 @@ class _InventoryTabState extends ConsumerState<InventoryTab> {
                                 .read(inventoryRepositoryProvider)
                                 .deleteProduct(product);
                             ref.invalidate(productsProvider);
+                            ref.invalidate(reportsProvider);
                           },
                           background: Container(
                             color: Colors.red.shade600,

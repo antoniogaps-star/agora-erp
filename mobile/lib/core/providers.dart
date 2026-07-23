@@ -6,6 +6,7 @@ import '../data/sync/sync_service.dart';
 import '../features/auth/auth_repository.dart';
 import '../features/customers/customers_repository.dart';
 import '../features/inventory/inventory_repository.dart';
+import '../features/reports/reports_repository.dart';
 import 'api_client.dart';
 import 'demo.dart';
 import 'secure_store.dart';
@@ -62,6 +63,15 @@ final customersRepositoryProvider = Provider<CustomersRepository>(
 /// Clientes locales. Se invalida tras cada alta o sincronización.
 final customersProvider = FutureProvider.autoDispose<List<Customer>>(
   (ref) => ref.watch(customersRepositoryProvider).listCustomers(),
+);
+
+final reportsRepositoryProvider = Provider<ReportsRepository>(
+  (ref) => ReportsRepository(ref.watch(databaseProvider)),
+);
+
+/// Reportes calculados de la base local. Se invalida tras cada venta y sincronización.
+final reportsProvider = FutureProvider.autoDispose<ReportData>(
+  (ref) => ref.watch(reportsRepositoryProvider).load(),
 );
 
 /// Cuenta recordada en este equipo (empresa + correo con los que se entró antes).

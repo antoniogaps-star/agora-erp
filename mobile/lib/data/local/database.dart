@@ -93,6 +93,14 @@ class AppDatabase extends _$AppDatabase {
         ..orderBy([(p) => OrderingTerm(expression: p.name)]))
       .get();
 
+  /// Ventas locales vigentes (no borradas), más recientes primero. `updatedAt` marca
+  /// el momento de la venta (las ventas son inmutables, así que no cambia). Se usa para
+  /// los reportes del móvil (ventas de hoy/semana, más vendidos).
+  Future<List<Sale>> activeSales() => (select(sales)
+        ..where((s) => s.isDeleted.equals(false))
+        ..orderBy([(s) => OrderingTerm(expression: s.updatedAt, mode: OrderingMode.desc)]))
+      .get();
+
   /// Stock local por producto = suma de los deltas de sus movimientos.
   Future<Map<String, int>> stockByProduct() async {
     final sum = stockMovements.delta.sum();
